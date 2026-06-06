@@ -1,0 +1,131 @@
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { ordersAPI, invoicesAPI } from '../../api/services';
+import { Button, Badge, LoadingPage, EmptyState } from '../../components/ui/index';
+import { formatCurrency, formatDateTime, downloadBlob } from '../../utils/helpers';
+
+export default function OrderDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['order', id],
+    queryFn: () => ordersAPI.getOne(id).then(r => r.data.data),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => ordersAPI.cancel(id),
+    onSuccess: () => { toast.success('Order cancelled'); qc.invalidateQueries(['order', id]); },
+  });
+
+  const downloadInvoice = async () => {
+    if (!data?.invoice?.id) return;
+    try {
+      const res = await invoicesAPI.download(data.invoice.id);
+      downloadBlob(res.data, `invoice-${data.invoice.invoice_number}.pdf`);
+    } catch { toast.error('Download failed'); }
+  };
+
+  const emailInvoice = async () => {
+    if (!data?.invoice?.id) return;
+    try {
+      await invoicesAPI.email(data.invoice.id);
+      toast.success('Invoice emailed to customer');
+    } catch { toast.error('Email failed'); }
+  };
+
+  if (isLoading) return <LoadingPage />;
+  if (!data) return <EmptyState title="Order not found" />;
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← Back</button>
+          <h1 className="text-2xl font-bold text-gray-900">{data.order_number}</h1>
+          <p className="text-sm text-gray-500">{formatDateTime(data.created_at)} · by {data.creator?.name}</p>
+        </div>
+        <div className="flex gap-2 flex-wrap justify-end">
+          <Badge status={data.status} />
+          {data.invoice && (
+            <>
+              <Button variant="secondary" onClick={downloadInvoice}>⬇ Download Invoice</Button>
+              <Button variant="secondary" onClick={emailInvoice}>✉ Email Invoice</Button>
+            </>
+          )}
+          {!['cancelled', 'delivered'].includes(data.status) && (
+            <Button variant="danger" onClick={() => cancelMutation.mutate()} loading={cancelMutation.isPending}>Cancel Order</Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Customer */}
+        <div className="card p-5">
+          <h3 className="font-semibold text-gray-700 mb-3">Customer</h3>
+          <p className="font-medium text-gray-900">{data.customer?.name}</p>
+          <p className="text-sm text-gray-500">{data.customer?.email}</p>
+          <p className="text-sm text-gray-500">{data.customer?.phone}</p>
+          <p className="text-sm text-gray-500">{data.customer?.address}</p>
+          <Link to={`/customers/${data.customer?.id}`} className="text-xs text-primary-600 hover:underline mt-2 block">View customer profile →</Link>
+        </div>
+
+        {/* Invoice */}
+        <div className="card p-5">
+          <h3 className="font-semibold text-gray-700 mb-3">Invoice</h3>
+          {data.invoice ? (
+            <>
+              <p className="font-medium text-gray-900">{data.invoice.invoice_number}</p>
+              <div className="mt-2 space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-gray-500">Status</span><Badge status={data.invoice.status} /></div>
+                <div className="flex justify-between"><span className="text-gray-500">Total</span><span className="font-medium">{formatCurrency(data.invoice.total_amount)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Paid</span><span className="text-green-600">{formatCurrency(data.invoice.amount_paid)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Balance</span><span className={data.invoice.balance_due > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}>{formatCurrency(data.invoice.balance_due)}</span></div>
+              </div>
+            </>
+          ) : <p className="text-sm text-gray-400">No invoice generated</p>}
+        </div>
+      </div>
+
+      {/* Order Items */}
+      <div className="card">
+        <div className="p-5 border-b"><h3 className="font-semibold text-gray-800">Order Items</h3></div>
+        <div className="table-container rounded-none border-0">
+          <table className="table">
+            <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+            <tbody>
+              {data.items?.map(item => (
+                <tr key={item.id}>
+                  <td className="font-medium text-gray-900">{item.product_name}</td>
+                  <td className="text-center">{item.quantity}</td>
+                  <td>{formatCurrency(item.unit_price)}</td>
+                  <td className="font-medium">{formatCurrency(item.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-5 border-t">
+          <div className="max-w-xs ml-auto space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(data.subtotal)}</span></div>
+            {data.discount_amount > 0 && <div className="flex justify-between"><span className="text-gray-500">Discount</span><span className="text-red-500">-{formatCurrency(data.discount_amount)}</span></div>}
+            {data.tax_amount > 0 && <div className="flex justify-between"><span className="text-gray-500">Tax ({data.tax_rate}%)</span><span>{formatCurrency(data.tax_amount)}</span></div>}
+            <div className="flex justify-between font-bold text-base border-t pt-2"><span>Total</span><span>{formatCurrency(data.total_amount)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Amount Paid</span><span className="text-green-600">{formatCurrency(data.amount_paid)}</span></div>
+            {data.balance_due > 0 && <div className="flex justify-between font-semibold text-red-600"><span>Balance Due</span><span>{formatCurrency(data.balance_due)}</span></div>}
+          </div>
+        </div>
+      </div>
+
+      {data.notes && (
+        <div className="card p-5">
+          <h3 className="font-semibold text-gray-700 mb-2">Notes</h3>
+          <p className="text-sm text-gray-600">{data.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+}
