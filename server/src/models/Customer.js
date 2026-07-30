@@ -2,7 +2,8 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const Customer = sequelize.define('Customer', {
-  id: { type: DataTypes.CHAR(36), defaultValue: DataTypes.UUIDV4, primaryKey: true }, { type: DataTypes.STRING(20), unique: true },
+  id: { type: DataTypes.CHAR(36), defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  customer_code: { type: DataTypes.STRING(20), unique: true },
   name: { type: DataTypes.STRING(150), allowNull: false },
   email: { type: DataTypes.STRING(150), validate: { isEmail: true } },
   phone: { type: DataTypes.STRING(20) },
