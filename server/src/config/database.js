@@ -11,8 +11,11 @@ const sequelize = new Sequelize(
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
-    define: { timestamps: true, underscored: true },
-    dialectOptions: process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {},
+    define: { timestamps: true, underscored: true, charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' },
+    dialectOptions: {
+      ...(process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {}),
+      charset: 'utf8mb4',
+    },
   }
 );
 
