@@ -90,7 +90,10 @@ sequelize.authenticate()
       await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
       logger.info('All tables dropped.');
     }
-    return sequelize.sync();
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    await sequelize.sync();
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    return;
   })
   .then(() => {
     app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
