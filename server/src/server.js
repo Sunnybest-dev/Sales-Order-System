@@ -86,8 +86,13 @@ sequelize.authenticate()
     if (process.env.DROP_AND_SYNC === 'true') {
       logger.info('DROP_AND_SYNC enabled — dropping all tables...');
       await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-      await sequelize.query('DROP TABLE IF EXISTS inventory_transactions');
-      await sequelize.drop();
+      const [tables] = await sequelize.query(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+      `);
+      for (const row of tables) {
+        await sequelize.query(`DROP TABLE IF EXISTS \`${row.table_name || row.TABLE_NAME}\``);
+      }
       await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
       logger.info('All tables dropped.');
     }
