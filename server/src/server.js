@@ -81,9 +81,16 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 sequelize.authenticate()
-  .then(() => {
+  .then(async () => {
     logger.info('Database connected');
-    return sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+    if (process.env.DROP_AND_SYNC === 'true') {
+      logger.info('DROP_AND_SYNC enabled — dropping all tables...');
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+      await sequelize.drop();
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+      logger.info('All tables dropped.');
+    }
+    return sequelize.sync();
   })
   .then(() => {
     app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
