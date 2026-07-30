@@ -16,13 +16,40 @@ const logger = require('./config/logger');
 
 const app = express();
 
+const parseAllowedOrigins = () => {
+  const configured = [
+    process.env.CLIENT_URL,
+    process.env.CLIENT_URLS,
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://sales-order-eight.vercel.app',
+  ];
+
+  return configured.flatMap((value) => {
+    if (!value) return [];
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  });
+};
+
+const allowedOrigins = parseAllowedOrigins();
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || /https:\/\/.*\.vercel\.app$/i.test(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 // Security
 app.use(helmet());
 app.use(xss());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(rateLimit({
   windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
   max: process.env.RATE_LIMIT_MAX || 100,
@@ -42,7 +69,7 @@ app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) }
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
-app.use('/api/v1', routes);
+app.use(['/api', '/api/v1'], routes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));

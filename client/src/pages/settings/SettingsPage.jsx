@@ -17,7 +17,11 @@ function AddUserForm({ onClose }) {
     <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
       <Input label="Full Name *" error={errors.name?.message} {...register('name', { required: 'Required' })} />
       <Input label="Email *" type="email" error={errors.email?.message} {...register('email', { required: 'Required' })} />
-      <Input label="Password *" type="password" error={errors.password?.message} {...register('password', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} />
+      <Input
+        label="Password *" type="password"
+        error={errors.password?.message}
+        {...register('password', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })}
+      />
       <Select label="Role *" {...register('role', { required: 'Required' })}>
         <option value="">Select role</option>
         <option value="manager">Manager</option>
@@ -25,9 +29,9 @@ function AddUserForm({ onClose }) {
         <option value="sales_staff">Sales Staff</option>
       </Select>
       <Input label="Phone" {...register('phone')} />
-      <div className="flex gap-3 justify-end">
-        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-        <Button type="submit" loading={mutation.isPending}>Create User</Button>
+      <div className="flex flex-col sm:flex-row gap-3 justify-end">
+        <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+        <Button type="submit" loading={mutation.isPending} className="w-full sm:w-auto">Create User</Button>
       </div>
     </form>
   );
@@ -41,10 +45,10 @@ function ProfileForm() {
     onSuccess: (res) => { setUser(res.data.data); toast.success('Profile updated'); },
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4 max-w-md">
+    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
       <Input label="Full Name" {...register('name')} />
       <Input label="Phone" {...register('phone')} />
-      <Button type="submit" loading={mutation.isPending}>Save Changes</Button>
+      <Button type="submit" loading={mutation.isPending} className="w-full sm:w-auto">Save Changes</Button>
     </form>
   );
 }
@@ -67,34 +71,41 @@ export default function SettingsPage() {
   });
 
   const tabs = [
-    { key: 'profile', label: '👤 My Profile' },
-    { key: 'users', label: '👥 User Management', roles: ['super_admin', 'manager'] },
-    { key: 'company', label: '🏢 Company Info' },
+    { key: 'profile', label: '👤 Profile' },
+    { key: 'users', label: '👥 Users', roles: ['super_admin', 'manager'] },
+    { key: 'company', label: '🏢 Company' },
   ].filter(t => !t.roles || t.roles.includes(user?.role));
 
   return (
     <div>
       <PageHeader title="Settings" subtitle="Manage your account and system settings" />
 
-      <div className="flex gap-2 border-b border-gray-200 mb-6">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === t.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs — scrollable on mobile */}
+      <div className="overflow-x-auto mb-4 sm:mb-6">
+        <div className="flex gap-1 border-b border-gray-200 min-w-max">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === t.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Profile Tab */}
       {tab === 'profile' && (
-        <div className="card p-6 max-w-lg">
+        <div className="card p-4 sm:p-6 max-w-lg">
           <h3 className="font-semibold text-gray-800 mb-4">Profile Information</h3>
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-2xl">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-xl sm:text-2xl shrink-0">
               {user?.name?.[0]?.toUpperCase()}
             </div>
-            <div>
-              <p className="font-semibold text-gray-900">{user?.name}</p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-sm text-gray-500 truncate">{user?.email}</p>
               <span className="badge-blue capitalize">{user?.role?.replace('_', ' ')}</span>
             </div>
           </div>
@@ -102,13 +113,18 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Users Tab */}
       {tab === 'users' && (
         <div className="card">
-          <div className="flex items-center justify-between p-5 border-b">
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b gap-3">
             <h3 className="font-semibold text-gray-800">System Users</h3>
-            {user?.role === 'super_admin' && <Button onClick={() => setShowAddUser(true)}>+ Add User</Button>}
+            {user?.role === 'super_admin' && (
+              <Button onClick={() => setShowAddUser(true)} size="sm">+ Add User</Button>
+            )}
           </div>
-          <div className="table-container rounded-none border-0">
+
+          {/* Desktop table */}
+          <div className="hidden sm:block table-container rounded-none border-0">
             <table className="table">
               <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -121,7 +137,9 @@ export default function SettingsPage() {
                     <td><Badge status={u.is_active ? 'active' : 'inactive'} /></td>
                     <td>
                       {u.id !== user?.id && u.is_active && (
-                        <button onClick={() => deactivateMutation.mutate(u.id)} className="text-xs text-red-500 hover:underline">Deactivate</button>
+                        <button onClick={() => deactivateMutation.mutate(u.id)} className="text-xs text-red-500 hover:underline">
+                          Deactivate
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -129,20 +147,44 @@ export default function SettingsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="sm:hidden divide-y divide-gray-100">
+            {users?.map(u => (
+              <div key={u.id} className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{u.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                  </div>
+                  <Badge status={u.is_active ? 'active' : 'inactive'} />
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="badge-blue capitalize text-xs">{u.role?.replace('_', ' ')}</span>
+                  {u.id !== user?.id && u.is_active && (
+                    <button onClick={() => deactivateMutation.mutate(u.id)} className="text-xs text-red-500 hover:underline">
+                      Deactivate
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Company Tab */}
       {tab === 'company' && (
-        <div className="card p-6 max-w-lg">
+        <div className="card p-4 sm:p-6 max-w-lg">
           <h3 className="font-semibold text-gray-800 mb-4">Company Information</h3>
-          <div className="space-y-3 text-sm">
+          <div className="space-y-2 text-sm">
             {[
               { label: 'Company Name', value: import.meta.env.VITE_COMPANY_NAME || 'Your Company' },
               { label: 'Email', value: import.meta.env.VITE_COMPANY_EMAIL || '—' },
               { label: 'Phone', value: import.meta.env.VITE_COMPANY_PHONE || '—' },
               { label: 'Address', value: import.meta.env.VITE_COMPANY_ADDRESS || '—' },
             ].map(item => (
-              <div key={item.label} className="flex justify-between py-2 border-b border-gray-100">
+              <div key={item.label} className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-100 gap-1">
                 <span className="text-gray-500">{item.label}</span>
                 <span className="font-medium text-gray-800">{item.value}</span>
               </div>

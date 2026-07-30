@@ -1,0 +1,1264 @@
+Software Technical Documentation
+
+1. Project Identification
+
+Project Title
+SalesOrder Pro — Sales Order Accounting Information System
+
+System Name
+SalesOrder Pro
+
+Type of Software
+A web-based enterprise resource planning (ERP-lite) and accounting information system for sales order processing, inventory control, invoicing, reporting, and expense tracking.
+
+Industry Context
+Small and medium-scale enterprises (SMEs), especially businesses that require order management, customer tracking, invoicing, and basic financial reporting.
+
+Purpose
+To provide a central digital platform for managing sales orders from creation to invoicing and reporting, while maintaining inventory movement and basic accounting visibility.
+
+Main Problem Solved
+The system addresses the inefficiency of manually tracking sales orders, inventory, invoices, and customer balances. It reduces spreadsheet-based operations and provides a structured way to manage critical business processes.
+
+Target Users
+- Business owners and managers
+- Sales staff
+- Accountants
+- Inventory or operations personnel
+- System administrators
+
+Stakeholders
+- End users in SMEs
+- Business owners / managers
+- Finance and accounting staff
+- Developers and maintainers
+- Database administrators
+- Potential system integrators or future extension teams
+
+Scope
+The current implementation covers:
+- Authentication and role-based access control
+- Customer management
+- Product and category management
+- Inventory adjustment and low-stock monitoring
+- Sales order creation and cancellation
+- Invoice generation, email, PDF download, and payment state updates
+- Expense tracking
+- Dashboard analytics and reports
+- Notifications and audit logging
+
+Objectives
+- Automate sales order handling for SME operations
+- Maintain an auditable record of transactions
+- Support inventory movement tracking
+- Improve visibility through dashboards and reports
+- Provide a role-based workflow for different organizational roles
+
+Core Features
+- Role-based authentication
+- CRUD operations for customers, products, and expenses
+- Sales order workflow with inventory deduction
+- Automatic invoice creation
+- PDF invoice generation
+- Email invoice dispatch
+- Dashboard metrics and visual reports
+- Notifications for low stock and other events
+- Audit logs for write operations
+
+Business Value
+The system improves operational control, reduces manual errors, accelerates business processes, and provides better insight into revenue, inventory, and customer obligations.
+
+Real-World Application
+This system can be used by a retail or wholesale business, distribution company, service-oriented SME, or office supplies vendor that manages product stock and customer billing.
+
+2. High-Level Overview
+
+The project adopts a client-server architecture. The frontend is a React application that presents a dashboard-driven user interface. The backend is an Express.js REST API that exposes authenticated endpoints for managing business entities. Data is stored in a MySQL relational database through Sequelize ORM.
+
+System Overview
+The system is organized around the following major business domains:
+- Authentication and users
+- Customers
+- Products and inventory
+- Orders and invoices
+- Expenses and financial reporting
+- Notifications and auditing
+
+Workflow
+A typical workflow is:
+1. A user signs in using email and password.
+2. The client stores access and refresh tokens in localStorage.
+3. The user performs actions such as creating a customer, adding products, or submitting a sales order.
+4. The frontend sends HTTP requests to the API.
+5. The backend validates input, enforces authorization, interacts with Sequelize models, and updates the database.
+6. The system responds with structured JSON payloads and, where applicable, generates invoices or notifications.
+
+User Journey
+A typical manager or salesperson can:
+- Log in
+- View dashboard metrics
+- Create or manage customers
+- Add or edit products
+- Create a sales order
+- Review generated invoice data
+- Download or email invoices
+- View reports and expenses
+
+Data Flow
+The data flow is as follows:
+- Browser UI collects user input
+- Axios client sends requests to the backend
+- Express middleware validates authentication and input
+- Controllers orchestrate business logic
+- Sequelize models interact with MySQL
+- Resulting data is returned to the frontend for rendering
+
+Request Lifecycle
+A request passes through:
+- CORS, helmet, rate limiting, xss protection
+- JSON/body parsing and cookie parsing
+- Route matching
+- Authentication/authorization middleware
+- Controller logic
+- Sequelize model operations
+- Error handling middleware
+
+Overall Execution Flow
+The application starts by launching the backend server, syncing Sequelize models with the database, and then serving the React app. The frontend uses route-based navigation and API-backed pages.
+
+3. Tech Stack
+
+Programming Languages
+- JavaScript
+
+Frontend Frameworks and Libraries
+- React 18
+- React Router DOM 6
+- Vite
+- Tailwind CSS
+- React Hook Form
+- TanStack React Query
+- Zustand
+- React Hot Toast
+- Chart.js and react-chartjs-2
+- Axios
+- date-fns
+
+Backend Frameworks and Libraries
+- Node.js
+- Express.js
+- Sequelize
+- MySQL2
+- JWT (jsonwebtoken)
+- bcryptjs
+- express-validator
+- helmet
+- cors
+- compression
+- cookie-parser
+- morgan
+- express-rate-limit
+- xss-clean
+- multer
+- nodemailer
+- pdfkit
+- winston
+- uuid
+- node-cron
+
+Package Managers
+- npm
+
+Runtime
+- Node.js
+- Browser runtime for React frontend
+
+Database
+- MySQL
+
+Authentication
+- JWT-based authentication with access and refresh tokens
+- Role-based access control implemented in middleware
+
+Storage
+- MySQL database for primary data persistence
+- Local file system for uploaded assets and generated PDF files
+
+Networking
+- RESTful HTTP API over JSON
+- CORS enabled for frontend origin
+
+Testing
+- Jest and Supertest included in server dependencies
+
+Build Tools
+- Vite for frontend build and dev server
+- Nodemon for backend development auto-reload
+
+Deployment
+- Intended for deployment as separate client and server services
+
+Logging
+- Winston configured to write to log files
+- Morgan logs HTTP requests
+
+Why These Technologies Were Chosen
+- React and Vite were chosen for fast UI development and modern component-driven frontends.
+- Express and Sequelize were chosen for ease of building a REST API and working with a relational database.
+- JWT was chosen because the system requires stateless authentication suitable for APIs.
+- PDFKit and Nodemailer were chosen to support invoice generation and delivery.
+- Tailwind was chosen to speed up styling with a consistent design system.
+
+4. Project Structure
+
+Complete Folder Tree
+Sales-Order-System/
+├── package.json
+├── README.md
+├── client/
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   ├── vite.config.js
+│   ├── public/
+│   └── src/
+│       ├── App.css
+│       ├── App.jsx
+│       ├── index.css
+│       ├── main.jsx
+│       ├── api/
+│       │   ├── client.js
+│       │   └── services.js
+│       ├── assets/
+│       ├── components/
+│       │   ├── layout/
+│       │   │   ├── AppLayout.jsx
+│       │   │   └── Sidebar.jsx
+│       │   └── ui/
+│       │       └── index.jsx
+│       ├── pages/
+│       │   ├── auth/
+│       │   │   └── LoginPage.jsx
+│       │   ├── customers/
+│       │   │   └── CustomersPage.jsx
+│       │   ├── dashboard/
+│       │   │   └── DashboardPage.jsx
+│       │   ├── expenses/
+│       │   │   └── ExpensesPage.jsx
+│       │   ├── invoices/
+│       │   │   └── InvoicesPage.jsx
+│       │   ├── orders/
+│       │   │   ├── OrderDetailPage.jsx
+│       │   │   └── OrdersPage.jsx
+│       │   ├── products/
+│       │   │   └── ProductsPage.jsx
+│       │   ├── reports/
+│       │   │   └── ReportsPage.jsx
+│       │   └── settings/
+│       │       └── SettingsPage.jsx
+│       ├── store/
+│       │   └── authStore.js
+│       └── utils/
+│           └── helpers.js
+├── database/
+│   └── schema.sql
+├── server/
+│   ├── .env
+│   ├── .env.example
+│   ├── logs/
+│   ├── package.json
+│   └── src/
+│       ├── server.js
+│       ├── config/
+│       │   ├── database.js
+│       │   └── logger.js
+│       ├── controllers/
+│       │   ├── auditController.js
+│       │   ├── authController.js
+│       │   ├── customerController.js
+│       │   ├── dashboardController.js
+│       │   ├── expenseController.js
+│       │   ├── invoiceController.js
+│       │   ├── notificationController.js
+│       │   ├── orderController.js
+│       │   ├── productController.js
+│       │   ├── userController.js
+│       ├── database/
+│       │   └── seeders/
+│       │       └── index.js
+│       ├── middleware/
+│       │   ├── auth.js
+│       │   ├── errorHandler.js
+│       │   └── validate.js
+│       ├── models/
+│       │   ├── associations.js
+│       │   ├── Customer.js
+│       │   ├── index.js
+│       │   ├── Order.js
+│       │   ├── Product.js
+│       │   └── User.js
+│       ├── routes/
+│       │   └── index.js
+│       ├── services/
+│       │   ├── emailService.js
+│       │   └── pdfService.js
+│       └── utils/
+│           └── generators.js
+
+Folder Responsibilities
+- client/: Frontend React application
+- server/: Backend Express API and business logic
+- database/: SQL schema definition
+- docs/: Documentation
+
+File Responsibilities
+- client/src/App.jsx: Main route definition
+- client/src/api/services.js: API wrappers for all backend endpoints
+- client/src/store/authStore.js: Authentication state management
+- client/src/components/layout/AppLayout.jsx: Global shell with sidebar and notifications
+- client/src/pages/*: Feature pages for each domain
+- server/src/server.js: Node entry point and middleware initialization
+- server/src/controllers/*: Business logic handlers per domain
+- server/src/models/*: Sequelize schema definitions and relationships
+- server/src/routes/index.js: API route registration
+- server/src/services/*: Email and PDF support
+- server/src/database/seeders/index.js: Demo data seeding
+- database/schema.sql: Raw SQL schema definition
+
+5. System Architecture
+
+Architecture Pattern
+The project uses a modular layered client-server architecture.
+
+Architectural Style
+- Monolithic backend service
+- Client-server frontend/backend split
+- Layered structure with controllers and models
+- No microservices or separate queue infrastructure
+
+Component Interaction
+The interaction flow is:
+- UI components call service functions
+- Service functions call Axios client with auth headers
+- API routes invoke controllers
+- Controllers use models and services
+- Models persist data in MySQL
+- Responses are returned to the React layer
+
+Module Interaction
+- Auth module is used by all protected routes
+- Order module depends on product inventory logic
+- Invoice module depends on order and customer info
+- Reports module aggregates order, expense, and inventory data
+- Notifications and audit logs receive events from other modules
+
+Request Flow
+1. Browser requests a page or API endpoint
+2. React Router renders the required page
+3. React Query fetches data from API endpoints
+4. Axios attaches auth headers
+5. Express middleware authorizes the request
+6. Controller processes and saves or reads data
+7. Database returns data
+8. Response is shown in UI
+
+Response Flow
+Responses are standardized as JSON objects with a success field plus data/meta/message payloads.
+
+6. Database
+
+Database Engine
+MySQL 8-compatible relational database.
+
+Schema Strategy
+The schema is defined both as raw SQL in database/schema.sql and as Sequelize model definitions in server/src/models. The runtime server synchronizes models using Sequelize sync in development.
+
+Core Entities
+- users
+- categories
+- customers
+- products
+- orders
+- order_items
+- invoices
+- transactions
+- expenses
+- inventory_logs
+- notifications
+- audit_logs
+
+Entity Relationships
+- A category has many products
+- A customer has many orders and invoices
+- An order belongs to one customer and one creator user
+- An order has many order items
+- Each order item belongs to one product
+- An order has one invoice
+- A product has many inventory logs
+- A user has many notifications and audit logs
+
+Primary Keys
+All major tables use UUID primary keys generated by Sequelize default UUIDV4.
+
+Foreign Keys
+- products.category_id -> categories.id
+- orders.customer_id -> customers.id
+- orders.created_by -> users.id
+- order_items.order_id -> orders.id
+- order_items.product_id -> products.id
+- invoices.order_id -> orders.id
+- invoices.customer_id -> customers.id
+- invoices.issued_by -> users.id
+- transactions.order_id -> orders.id
+- transactions.customer_id -> customers.id
+- transactions.recorded_by -> users.id
+- expenses.recorded_by -> users.id
+- inventory_logs.product_id -> products.id
+- notifications.user_id -> users.id
+- audit_logs.user_id -> users.id
+
+Constraints and Validation
+- User email unique
+- Product SKU and product_code unique
+- Customer customer_code unique
+- Order number unique
+- Invoice number unique
+- Transaction reference unique
+- Enum-based statuses and roles
+
+Normalization
+The schema is relational and normalized to a reasonable extent.
+
+ER Diagram
+Mermaid ER diagram included in the markdown version.
+
+Tables
+- users
+- categories
+- customers
+- products
+- orders
+- order_items
+- invoices
+- transactions
+- expenses
+- inventory_logs
+- notifications
+- audit_logs
+
+Database Migrations and Seeders
+The project uses Sequelize synchronization rather than explicit migration files. The seeder creates tables and inserts demo records.
+
+7. API Documentation
+
+Base URL
+/api/v1
+
+Authentication Endpoints
+- POST /auth/login
+- POST /auth/register
+- POST /auth/refresh
+- POST /auth/logout
+- POST /auth/forgot-password
+- POST /auth/reset-password
+- GET /auth/profile
+- PUT /auth/profile
+
+Dashboard and Reports Endpoints
+- GET /dashboard/stats
+- GET /reports/sales
+- GET /reports/inventory
+- GET /reports/profit-loss
+
+Customer Endpoints
+- GET /customers
+- POST /customers
+- GET /customers/:id
+- PUT /customers/:id
+- DELETE /customers/:id
+- GET /customers/:id/transactions
+- GET /customers/:id/analytics
+
+Product Endpoints
+- GET /products
+- POST /products
+- GET /products/low-stock
+- GET /products/:id
+- PUT /products/:id
+- DELETE /products/:id
+- POST /products/:id/adjust-stock
+- GET /categories
+- POST /categories
+
+Order Endpoints
+- GET /orders
+- POST /orders
+- GET /orders/:id
+- PATCH /orders/:id/status
+- POST /orders/:id/cancel
+
+Invoice Endpoints
+- GET /invoices
+- GET /invoices/:id
+- GET /invoices/:id/download
+- POST /invoices/:id/email
+- PATCH /invoices/:id/mark-paid
+
+User and Admin Endpoints
+- GET /users
+- PUT /users/:id
+- DELETE /users/:id
+
+Notification Endpoints
+- GET /notifications
+- PATCH /notifications/:id/read
+- PATCH /notifications/read-all
+
+Expense and Audit Endpoints
+- GET /expenses
+- POST /expenses
+- PUT /expenses/:id
+- DELETE /expenses/:id
+- GET /audit-logs
+
+8. Authentication
+
+Registration
+Registration is implemented on the backend through POST /auth/register. The endpoint requires authentication and super_admin role.
+
+Login
+Login uses email and password. The controller checks the user record, verifies the password via bcrypt, and issues JWTs if successful.
+
+JWT Implementation
+- Access token: shorter-lived and sent in Authorization header
+- Refresh token: longer-lived and stored in the database and local storage
+
+Session Handling
+The frontend stores tokens in localStorage and attaches the access token to every request via Axios headers.
+
+Password Hashing
+User passwords are hashed using bcryptjs. The hashing occurs in Sequelize hooks before create and before update when the password changes.
+
+Roles and Permissions
+Roles defined in the system:
+- super_admin
+- manager
+- accountant
+- sales_staff
+
+Authorization Pattern
+The routes use middleware such as authenticate and authorize(...) to enforce role semantics.
+
+Security Middleware
+The server uses helmet, xss-clean, cors, express-rate-limit, and express-validator.
+
+9. Business Logic
+
+User Authentication Flow
+Files involved:
+- server/src/controllers/authController.js
+- server/src/models/User.js
+- server/src/middleware/auth.js
+
+Logic:
+- Validate credentials
+- Compare hashed password
+- Issue JWTs
+- Store refresh token
+
+Customer Management
+Files involved:
+- server/src/controllers/customerController.js
+- server/src/models/Customer.js
+- client/src/pages/customers/CustomersPage.jsx
+
+Logic:
+- Search customers by name/email/phone/code
+- Create, update, and deactivate customers
+- Generate customer codes automatically
+- Return customer transaction and analytics summaries
+
+Product and Inventory Management
+Files involved:
+- server/src/controllers/productController.js
+- server/src/models/Product.js
+- client/src/pages/products/ProductsPage.jsx
+
+Logic:
+- Create and update products
+- Categorize products
+- Adjust stock quantity
+- Record inventory logs
+- Notify admin/manager users when stock is low
+
+Sales Order Processing
+Files involved:
+- server/src/controllers/orderController.js
+- server/src/models/Order.js
+- server/src/models/OrderItem.js
+- server/src/services/pdfService.js
+- server/src/utils/generators.js
+
+Logic:
+- Validate stock availability
+- Calculate subtotal, discount, tax, total, and balance due
+- Create an order and order items in a transaction
+- Deduct stock and log inventory movement
+- Generate invoice
+- Record transaction when payment is received
+- Update customer outstanding balance
+
+Invoice Management
+Files involved:
+- server/src/controllers/invoiceController.js
+- server/src/services/pdfService.js
+- server/src/services/emailService.js
+
+Logic:
+- Query invoices and their customer/order details
+- Generate PDF invoices using PDFKit
+- Send invoice emails with attachments
+- Mark invoices as paid
+
+Expense Tracking
+Files involved:
+- server/src/controllers/expenseController.js
+- client/src/pages/expenses/ExpensesPage.jsx
+
+Logic:
+- Allow authorized users to create, update, delete, and view expenses
+- Filter expenses by date, category, and pagination
+
+Reporting and Analytics
+Files involved:
+- server/src/controllers/dashboardController.js
+
+Logic:
+- Aggregate order revenue
+- Summarize monthly revenue and top-selling products
+- Calculate profit and loss using orders and expenses
+- Provide inventory status metrics
+
+Notifications and Audit Logging
+Files involved:
+- server/src/controllers/notificationController.js
+- server/src/controllers/auditController.js
+- server/src/middleware/errorHandler.js
+
+Logic:
+- Log write operations
+- Store notification records per user
+- Provide read/unread notification management
+
+10. Source Code Explanation
+
+server/src/server.js
+Initializes the backend application, configures middleware, static uploads, routes, logging, error handling, and database connection.
+
+server/src/routes/index.js
+Registers all API routes and applies middleware such as authentication, role authorization, input validation, and controller functions.
+
+server/src/middleware/auth.js
+Implements JWT verification and user authorization checks.
+
+server/src/middleware/validate.js
+Encapsulates validation-result handling for express-validator.
+
+server/src/middleware/errorHandler.js
+Handles application-level errors and maps known Sequelize errors to meaningful HTTP statuses.
+
+server/src/models/User.js
+Defines the users table and hooks for password hashing.
+
+server/src/models/Customer.js
+Defines customer fields and their validation defaults.
+
+server/src/models/Product.js
+Defines categories and products, including stock and pricing fields.
+
+server/src/models/Order.js
+Defines orders and order items and stores pricing and payment state.
+
+server/src/models/index.js
+Defines accounting and operational entities such as invoices, transactions, expenses, inventory logs, notifications, and audit logs.
+
+server/src/models/associations.js
+Establishes all Sequelize relationships between entities.
+
+server/src/utils/generators.js
+Generates order numbers, invoice numbers, customer codes, product codes, and transaction references.
+
+server/src/services/pdfService.js
+Generates invoice PDFs using PDFKit.
+
+server/src/services/emailService.js
+Creates a nodemailer transporter and sends emails.
+
+server/src/controllers/authController.js
+Contains login, registration, token refresh, logout, password reset, profile retrieval, and profile update logic.
+
+server/src/controllers/customerController.js
+Provides customer CRUD and analytics endpoints.
+
+server/src/controllers/productController.js
+Handles product CRUD, low-stock viewing, category management, and stock adjustment.
+
+server/src/controllers/orderController.js
+Contains the core business workflow for creating, retrieving, updating, and cancelling orders.
+
+server/src/controllers/invoiceController.js
+Handles invoice retrieval, PDF download, email dispatch, and marking invoices as paid.
+
+server/src/controllers/dashboardController.js
+Aggregates and summarizes business metrics and reports.
+
+server/src/controllers/expenseController.js
+Supports expense record management.
+
+server/src/controllers/userController.js
+Manages users from an administrative perspective.
+
+server/src/controllers/notificationController.js
+Provides notification fetch and mark-as-read operations.
+
+server/src/controllers/auditController.js
+Provides audit log retrieval.
+
+client/src/App.jsx
+Defines the top-level route structure and wraps the app in React Router and React Query.
+
+client/src/api/client.js
+Defines the Axios instance, auth header injection, and token refresh behavior.
+
+client/src/api/services.js
+Centralizes all API calls in domain-based service objects.
+
+client/src/store/authStore.js
+Implements the Zustand-based authentication store.
+
+client/src/components/layout/AppLayout.jsx
+Provides the overall shell layout, sidebar, topbar, and notification polling.
+
+client/src/pages/*
+Each page is a feature module that uses React Query plus forms for CRUD and reporting tasks.
+
+11. Frontend
+
+UI Structure
+The frontend is organized around a layout shell and feature pages.
+
+Pages
+- Login page
+- Dashboard page
+- Customers page
+- Products page
+- Orders page
+- Order detail page
+- Invoices page
+- Reports page
+- Expenses page
+- Settings page
+
+Navigation
+Routing is handled by React Router.
+
+Components
+The UI uses reusable shared components for buttons, input fields, modals, badges, pagination, empty states, loading screens, and confirmation dialogs.
+
+Layouts
+The AppLayout component provides a sidebar and header.
+
+Forms
+React Hook Form is used for creating and editing records.
+
+Validation
+Validation is mainly handled in the form layer and the server API layer.
+
+State Management
+- Zustand manages authentication state
+- React Query manages server state
+- Local state manages UI behavior
+
+Routing
+Routes are declared in App.jsx and wrapped within a shell layout.
+
+API Integration
+The frontend uses an Axios client with interceptors for auth headers and token refresh.
+
+Responsive Design
+The UI uses Tailwind utility classes and responsive behavior.
+
+Themes and Assets
+The interface uses a blue-based theme with cards, badges, and modern spacing.
+
+12. Backend
+
+Backend Architecture
+The backend is a single Express service exposing a REST API.
+
+Controllers
+Controllers contain business logic for each domain.
+
+Services
+The services layer is focused on invoice PDF generation and email sending.
+
+Routes
+API endpoints are grouped by domain in server/src/routes/index.js.
+
+Middleware
+- Authentication and role middleware
+- Validation middleware
+- Error handling middleware
+
+Error Handling
+Common errors yield structured JSON responses with success false and message/error content.
+
+Validation
+Validation is done using express-validator and Sequelize validation.
+
+Business Rules
+Examples include:
+- Customer deactivation rather than hard deletion
+- Product deactivation rather than hard deletion
+- Inventory cannot go below zero
+- Orders cannot be updated after cancellation
+
+13. Algorithms
+
+ID Generation
+The system generates order numbers, invoice numbers, customer codes, product codes, and transaction references through generator functions.
+
+Pricing Calculation
+The order creation workflow calculates:
+- subtotal = sum of unit price × quantity
+- discount amount = fixed amount or percentage of subtotal
+- taxable amount = subtotal − discount amount
+- tax amount = taxable amount × tax rate
+- total amount = taxable amount + tax amount
+- balance due = total amount − amount paid
+
+Inventory Adjustment
+The system ensures inventory stays non-negative. Before updating quantity, it checks whether the resulting stock would be below zero.
+
+Dashboard Aggregation
+The dashboard and reports use SQL aggregate queries through Sequelize to compute sums, counts, averages, and grouped results.
+
+Pagination Logic
+Pagination is implemented using limit and offset parameters and metadata.
+
+Search Logic
+Search uses SQL LIKE matching on relevant fields.
+
+Notification Logic
+Low-stock conditions trigger bulk notification creation for admin-level users.
+
+14. Security
+
+Authentication Security
+JWT-based auth is used.
+
+Authorization Security
+Role checks control access to sensitive endpoints.
+
+Encryption
+Passwords are hashed with bcryptjs.
+
+Input Validation
+Express-validator and Sequelize validations reduce malformed input risk.
+
+Sanitization
+xss-clean middleware is applied globally.
+
+CORS
+CORS is enabled and configured based on CLIENT_URL.
+
+Rate Limiting
+The server uses express-rate-limit with default values of 100 requests per 15 minutes.
+
+Password Security
+The system uses a salts-and-hash approach via bcrypt and does not store plaintext passwords.
+
+Environment Variables
+Secret keys and sensitive connection settings are expected to be provided through environment variables.
+
+Potential Vulnerabilities and Mitigations
+- Risk of token storage in localStorage
+- No explicit CSRF protection is implemented for cookie-based flows
+- No role-permission matrix beyond middleware-based checks
+- No explicit HTTPS forwarding or SSL configuration shown
+
+15. Error Handling
+
+Express Error Middleware
+Errors are forwarded to the errorHandler middleware, which logs them and returns structured JSON responses.
+
+Validation Errors
+Validation errors return 422 with detail messages.
+
+Unique Constraint Errors
+Duplicate database constraints return 409 conflict responses.
+
+Not Found Cases
+Unknown routes return 404.
+
+Logging
+Errors are written to log files using Winston.
+
+Recovery Patterns
+The order and stock adjustment workflows use database transactions to ensure rollback on failure.
+
+16. Configuration
+
+Environment Variables
+The server uses variables defined in server/.env.example:
+- NODE_ENV
+- PORT
+- CLIENT_URL
+- DB_HOST
+- DB_PORT
+- DB_NAME
+- DB_USER
+- DB_PASSWORD
+- JWT_SECRET
+- JWT_EXPIRES_IN
+- JWT_REFRESH_SECRET
+- JWT_REFRESH_EXPIRES_IN
+- SMTP_HOST
+- SMTP_PORT
+- SMTP_USER
+- SMTP_PASS
+- COMPANY_NAME
+- COMPANY_EMAIL
+- COMPANY_PHONE
+- COMPANY_ADDRESS
+- BCRYPT_ROUNDS
+- RATE_LIMIT_WINDOW
+- RATE_LIMIT_MAX
+
+Frontend Configuration
+The frontend uses VITE_API_URL and VITE_COMPANY_* environment variables.
+
+Runtime Configuration
+The backend uses process.env values for database connection, JWT secrets, rate limiting, company identity, and email transport.
+
+17. External Services
+
+SMTP Email Service
+The backend uses Nodemailer and environment-based SMTP credentials to send invoice emails.
+
+PDF Generation
+PDFKit is used to generate invoice PDFs in memory and send them as attachments or download blobs.
+
+Database Service
+MySQL is the core system database and external persistence layer.
+
+Notification Service
+The system uses in-application notifications stored in the database.
+
+18. Workflow Diagrams
+
+Authentication Workflow
+Mermaid flowchart included in the markdown version.
+
+Order Processing Workflow
+Mermaid flowchart included in the markdown version.
+
+API Lifecycle
+Mermaid flowchart included in the markdown version.
+
+19. Sequence Diagrams
+
+Login Sequence
+Mermaid sequence diagram included in the markdown version.
+
+Create Order Sequence
+Mermaid sequence diagram included in the markdown version.
+
+20. Use Cases
+
+Actors
+- Customer
+- Sales staff
+- Manager
+- Accountant
+- Super admin
+
+Use Case: User Login
+- Preconditions: User has an account
+- Normal Flow: User enters credentials, system validates, JWT issued
+- Alternative Flow: Invalid credentials show error
+- Exceptions: Disabled account denied
+
+Use Case: Create Customer
+- Preconditions: User authenticated
+- Normal Flow: Enter customer details, submit, system creates customer
+- Exceptions: Duplicate or invalid data rejected
+
+Use Case: Create Sales Order
+- Preconditions: Customer exists, products exist, user authenticated
+- Normal Flow: Add products, calculate totals, submit order
+- Exceptions: Validation errors or insufficient stock
+
+Use Case: Download Invoice
+- Preconditions: Order has invoice
+- Normal Flow: User requests PDF
+- Exceptions: Missing invoice or download error
+
+Use Case: Manage Expenses
+- Preconditions: User has expense privileges
+- Normal Flow: Create, update, or delete expense
+- Exceptions: Validation failure
+
+Use Case: View Reports
+- Preconditions: User has reporting access
+- Normal Flow: User selects dates and report type
+- Exceptions: No data available
+
+21. Functional Requirements
+
+1. The system shall allow users to authenticate using email and password.
+2. The system shall issue access and refresh tokens for authenticated users.
+3. The system shall restrict access based on user roles.
+4. The system shall allow creation, update, and deactivation of customers.
+5. The system shall allow creation, update, and deactivation of products.
+6. The system shall support inventory adjustment and stock updates.
+7. The system shall support creation of sales orders with line items.
+8. The system shall calculate totals, discounts, taxes, paid amounts, and balances.
+9. The system shall generate invoices for orders.
+10. The system shall allow invoices to be downloaded as PDF files.
+11. The system shall allow invoices to be emailed to customers.
+12. The system shall allow invoices to be marked as paid.
+13. The system shall track expenses.
+14. The system shall generate dashboard metrics and reports.
+15. The system shall support notifications for low stock and system events.
+16. The system shall maintain audit logs for important actions.
+
+22. Non-Functional Requirements
+
+Performance
+The application uses pagination, query limits, and aggregated SQL queries to improve responsiveness.
+
+Reliability
+The use of transactions for order creation and cancellation improves reliability and atomicity.
+
+Availability
+The current architecture expects a single backend service and a single relational database.
+
+Security
+JWT, bcrypt, validation, rate limiting, and security middleware are used to improve security.
+
+Scalability
+The current implementation is a monolith and would need architectural changes to scale horizontally.
+
+Maintainability
+The code is organized into clear domain modules and shared components.
+
+Portability
+The code is cross-platform JavaScript and can run on standard Node.js hosts.
+
+Usability
+The UI is visually structured and guided by forms, tables, and dashboards.
+
+Compatibility
+The system is browser-based and depends on modern JavaScript and browser support.
+
+23. Design Decisions
+
+Separation of Frontend and Backend
+The project separates the UI and API layers to improve maintainability and allow future independent scaling.
+
+Use of a Relational Database
+MySQL/Sequelize was chosen because the domain is highly relational and requires structured inventory and accounting workflows.
+
+Use of Sequelize ORM
+Sequelize abstracts schema management and provides an organized model layer.
+
+Use of JWT
+JWT was chosen for stateless API authentication.
+
+Use of Transactions in Orders
+Transactions are used for order creation and cancellation to preserve data integrity.
+
+Use of React Query
+React Query was chosen to manage remote state and cache data from the API.
+
+24. Dependency Analysis
+
+Core Dependencies
+- express: web server framework
+- sequelize: ORM layer
+- mysql2: database driver
+- jsonwebtoken: authentication
+- bcryptjs: password hashing
+- cors/helmet/xss-clean: security
+- nodemailer/pdfkit: document delivery and reporting
+- react/react-dom: UI rendering
+- react-router-dom: navigation
+- @tanstack/react-query: async data state
+- zustand: auth state
+- chart.js/react-chartjs-2: charts
+
+Why Dependencies Matter
+These dependencies directly implement the project’s core capabilities such as authentication, database access, invoicing, and UI rendering.
+
+25. Deployment
+
+Installation Requirements
+- Node.js
+- MySQL
+- npm
+
+Backend Setup
+- Configure .env values
+- Install dependencies
+- Run the seeder to create tables and demo data
+- Start server with npm run dev or npm start
+
+Frontend Setup
+- Install client dependencies
+- Configure VITE_API_URL and company environment variables
+- Start development server with npm run dev
+
+Production Deployment Considerations
+- Use separate production environment files
+- Configure proper secrets and SMTP credentials
+- Ensure database hostname, credentials, and ports are valid
+- Add reverse proxy and HTTPS
+- Consider containerization or process managers such as PM2
+
+CI/CD
+The project does not include a CI/CD pipeline in the workspace.
+
+26. Testing
+
+Testing Strategy
+The project includes Jest and Supertest dependencies, suggesting planned automated testing, but no concrete tests or test scripts were found.
+
+Possible Unit Tests
+- Password hashing and comparePassword
+- JWT generation and verification
+- Customer controller CRUD operations
+- Product stock adjustment logic
+- Pricing calculation logic
+- Invoice PDF generation
+
+Integration Tests
+- End-to-end order creation and invoice creation
+- Authentication and route authorization
+- Low-stock notification creation
+
+Manual Testing
+The system is designed to be manually tested by navigating the dashboard and CRUD modules.
+
+27. Performance
+
+Current Optimization Approaches
+- Pagination on listing endpoints
+- Use of aggregated SQL queries for reports
+- Caching through React Query on the frontend
+
+Bottlenecks
+- Large datasets may lead to slower queries over unoptimized joins
+- All business logic is implemented in synchronous controller functions, which could become slower as data grows
+- The system uses a single-node architecture and no queue or background processing
+
+Database Optimization Opportunities
+- Add indexes for frequently filtered columns
+- Use database views for reports
+- Optimize join-heavy reporting queries
+
+28. Limitations
+
+The implementation is functional but has notable limitations:
+- The frontend does not appear to implement a dedicated forgot-password page despite the route being referenced in the login page.
+- The order status update logic does not correctly preload the invoice relation before checking it.
+- The product list query uses sequelize.col('min_stock_level') in a context where sequelize is not defined in the controller.
+- The system is not fully production hardened; secrets and environment handling need stronger controls.
+- There is no evidence of automated tests in the current workspace.
+- There is no explicit CI/CD pipeline.
+
+29. Future Improvements
+
+- Add a complete forgot-password page and reset-password workflow on the frontend
+- Add dedicated unit and integration tests
+- Introduce a proper migration framework instead of sync-based schema creation
+- Add file storage for uploaded assets and invoice PDF persistence
+- Add pagination and filtering improvements for reports
+- Add export to Excel/CSV
+- Add multi-tenant or multi-branch support
+- Integrate with payment gateways and accounting systems
+- Add more granular audit trails and analytics dashboards
+
+30. Academic Information Extraction
+
+Project Abstract
+This project implements a web-based sales order accounting information system for small and medium enterprises. It allows users to manage customers, products, orders, invoices, expenses, reports, and user access through a browser-based interface backed by a MySQL database and a Node.js/Express API.
+
+Research Motivation
+Manual recordkeeping and spreadsheet-based business management often lead to errors, poor visibility, and slow reporting. This system addresses these issues by digitizing core business functions and centralizing data.
+
+Problem Statement
+SMEs often lack affordable and integrated software to manage sales orders, inventory, invoicing, customer balances, and financial reporting. The absence of such systems leads to operational inefficiency and a higher risk of errors.
+
+Aim
+To design and implement a web-based sales order accounting information system that supports core SME business processes.
+
+Objectives
+- Build a role-based system for sales and accounting workflows
+- Support inventory-aware sales order creation
+- Automate invoice generation and document handling
+- Enable dashboard and reporting functionality
+- Provide secure authentication and authorization
+
+Research Questions
+- How can a web-based application improve the management of sales orders and invoices in SMEs?
+- How can inventory and customer balance data be synchronized during order processing?
+- How can role-based authentication improve operational security and compliance?
+
+Significance of the Study
+The system demonstrates how software engineering principles can be applied to improve business operations, especially in resource-constrained organizations.
+
+Scope
+The scope is limited to sales order processing, inventory control, invoice management, expense tracking, and reporting.
+
+Limitations
+The implementation does not yet cover advanced accounting modules, payment gateway integration, multi-company operations, or full enterprise-grade security controls.
+
+Assumptions
+- Users have access to a browser and the application is deployed on a server with Node.js and MySQL.
+- The system is intended for SMEs, not large multinational organizations.
+
+System Requirements
+- Node.js
+- MySQL
+- Modern web browser
+- SMTP server for invoice email dispatch
+
+Functional Requirements
+Listed in Section 21.
+
+Non-Functional Requirements
+Listed in Section 22.
+
+Existing Technologies Used
+React, Vite, Tailwind, React Query, Zustand, Express, Sequelize, MySQL, JWT, SMTP, PDFKit, Chart.js, Node.js.
+
+Research Methodology
+The project follows an applied software engineering and systems development methodology best described as an iterative Agile / Rapid Application Development (RAD) approach. This methodology is suitable because the implementation was developed through modular, feature-based increments that progressively added core business functions such as authentication, customer management, product management, order processing, invoicing, reporting, and notifications. The system was built by identifying functional requirements from the user workflow, translating them into software modules, implementing each module independently, and integrating them into a unified application. The research methodology also reflects a design-and-build approach in which the software artifact is developed, tested manually through interface interaction, and documented based on implementation evidence. The evidence for this methodology is visible in the project structure: separate frontend and backend modules, domain-based controllers, reusable UI components, and incremental business workflows that mirror iterative development cycles. This approach supports rapid prototyping of business processes, low-risk implementation of core features, and continuous refinement as new requirements emerge.
+
+Software Development Methodology That Best Matches the Implementation
+The implementation most closely resembles an iterative Agile or Rapid Application Development (RAD) approach. Evidence includes:
+- Modular feature-based development by domain
+- Separate frontend and backend modules with reusable service contracts
+- Fast prototyping of CRUD and dashboard features
+- Incremental addition of business workflows such as orders, invoices, reports, and notifications
+
+UML / Diagram Suggestions
+- Use Case Diagram
+- Component Diagram
+- Deployment Diagram
+
+Final Summary
+The SalesOrder Pro project is a comprehensive web-based sales order accounting system implemented with a React frontend and an Express/Sequelize backend. It covers authentication, customer and product management, inventory-aware order processing, invoice generation, email dispatch, expense tracking, reports, notifications, and audit logging. The implementation is functional, modular, and suitable for academic study as a practical example of a layered web application with relational data modeling, JWT security, and role-based business workflows.

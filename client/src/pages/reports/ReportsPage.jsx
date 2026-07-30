@@ -43,51 +43,63 @@ export default function ReportsPage() {
   } : null;
 
   const tabs = [
-    { key: 'sales', label: '📊 Sales Report' },
-    { key: 'profit', label: '💰 Profit & Loss' },
-    { key: 'inventory', label: '📦 Inventory Report' },
+    { key: 'sales', label: '📊 Sales' },
+    { key: 'profit', label: '💰 P&L' },
+    { key: 'inventory', label: '📦 Inventory' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader title="Reports & Analytics" subtitle="Business performance insights" />
 
       {/* Date Filter */}
-      <div className="card p-4 flex gap-4 items-end flex-wrap">
-        <div>
+      <div className="card p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+        <div className="flex-1">
           <label className="label">From Date</label>
-          <input type="date" className="input w-40" value={from} onChange={e => setFrom(e.target.value)} />
+          <input type="date" className="input" value={from} onChange={e => setFrom(e.target.value)} />
         </div>
-        <div>
+        <div className="flex-1">
           <label className="label">To Date</label>
-          <input type="date" className="input w-40" value={to} onChange={e => setTo(e.target.value)} />
+          <input type="date" className="input" value={to} onChange={e => setTo(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === t.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs — scrollable on mobile */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 border-b border-gray-200 min-w-max">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === t.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Sales Report */}
       {tab === 'sales' && (
         salesLoading ? <LoadingPage /> : salesData && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <KPICard title="Total Revenue" value={formatCurrency(salesData.summary?.total_revenue)} icon="💰" color="blue" />
               <KPICard title="Total Orders" value={salesData.summary?.total_orders || 0} icon="🛒" color="green" />
               <KPICard title="Avg Order Value" value={formatCurrency(salesData.summary?.avg_order_value)} icon="📊" color="purple" />
             </div>
             {salesChartData && (
-              <div className="card p-5">
-                <h3 className="font-semibold text-gray-800 mb-4">Sales Chart</h3>
-                <div className="h-72">
-                  <Bar data={salesChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }} />
+              <div className="card p-4 sm:p-5">
+                <h3 className="font-semibold text-gray-800 mb-3 sm:mb-4 text-sm sm:text-base">Sales Chart</h3>
+                <div className="h-56 sm:h-72">
+                  <Bar
+                    data={salesChartData}
+                    options={{
+                      responsive: true, maintainAspectRatio: false,
+                      plugins: { legend: { position: 'top' } },
+                      scales: { y: { beginAtZero: true, ticks: { font: { size: 11 } } }, x: { ticks: { font: { size: 11 } } } },
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -99,7 +111,7 @@ export default function ReportsPage() {
       {tab === 'profit' && (
         plLoading ? <LoadingPage /> : plData && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               <KPICard title="Total Revenue" value={formatCurrency(plData.totalRevenue)} icon="💰" color="blue" />
               <KPICard title="Cost of Goods" value={formatCurrency(plData.totalCOGS)} icon="🏭" color="yellow" />
               <KPICard title="Gross Profit" value={formatCurrency(plData.grossProfit)} icon="📈" color="green" />
@@ -107,9 +119,9 @@ export default function ReportsPage() {
               <KPICard title="Net Profit" value={formatCurrency(plData.netProfit)} icon="🏆" color={plData.netProfit >= 0 ? 'green' : 'red'} />
               <KPICard title="Gross Margin" value={`${plData.grossMargin}%`} icon="%" color="purple" />
             </div>
-            <div className="card p-5">
-              <h3 className="font-semibold text-gray-800 mb-4">Profit & Loss Summary</h3>
-              <div className="space-y-3 max-w-md">
+            <div className="card p-4 sm:p-5">
+              <h3 className="font-semibold text-gray-800 mb-4 text-sm sm:text-base">Profit & Loss Summary</h3>
+              <div className="space-y-2 max-w-md">
                 {[
                   { label: 'Revenue', value: plData.totalRevenue, color: 'text-blue-600' },
                   { label: '- Cost of Goods Sold', value: -plData.totalCOGS, color: 'text-red-500' },
@@ -132,16 +144,22 @@ export default function ReportsPage() {
       {tab === 'inventory' && (
         invLoading ? <LoadingPage /> : invData && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <KPICard title="Total Products" value={invData.products?.length || 0} icon="📦" color="blue" />
               <KPICard title="Inventory Value" value={formatCurrency(invData.totalValue)} icon="💰" color="green" />
               <KPICard title="Low Stock Items" value={invData.lowStockCount} icon="⚠️" color="red" />
             </div>
             <div className="card">
-              <div className="p-4 border-b"><h3 className="font-semibold text-gray-800">Inventory Status</h3></div>
-              <div className="table-container rounded-none border-0">
+              <div className="p-4 border-b">
+                <h3 className="font-semibold text-gray-800 text-sm sm:text-base">Inventory Status</h3>
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block table-container rounded-none border-0">
                 <table className="table">
-                  <thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Stock</th><th>Min Level</th><th>Cost Price</th><th>Value</th><th>Status</th></tr></thead>
+                  <thead><tr>
+                    <th>Product</th><th>SKU</th><th>Category</th>
+                    <th>Stock</th><th>Min</th><th>Cost</th><th>Value</th><th>Status</th>
+                  </tr></thead>
                   <tbody>
                     {invData.products?.map(p => (
                       <tr key={p.id}>
@@ -161,6 +179,26 @@ export default function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {invData.products?.map(p => (
+                  <div key={p.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{p.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{p.sku}</p>
+                      </div>
+                      {p.quantity <= p.min_stock_level
+                        ? <span className="badge-red">Low</span>
+                        : <span className="badge-green">OK</span>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 text-xs text-gray-600 mt-1">
+                      <span>Stock: <strong className={p.quantity <= p.min_stock_level ? 'text-red-600' : ''}>{p.quantity}</strong> / min {p.min_stock_level}</span>
+                      <span>Value: {formatCurrency(p.quantity * p.cost_price)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
