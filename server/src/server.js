@@ -84,20 +84,10 @@ sequelize.authenticate()
   .then(async () => {
     logger.info('Database connected');
     if (process.env.DROP_AND_SYNC === 'true') {
-      logger.info('DROP_AND_SYNC enabled — dropping all tables...');
-      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-      const [tables] = await sequelize.query(`
-        SELECT table_name FROM information_schema.tables
-        WHERE table_schema = DATABASE()
-      `);
-      for (const row of tables) {
-        await sequelize.query(`DROP TABLE IF EXISTS \`${row.table_name || row.TABLE_NAME}\``);
-      }
-      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-      logger.info('All tables dropped.');
+      logger.info('DROP_AND_SYNC enabled — will force recreate all tables...');
     }
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-    await sequelize.sync();
+    await sequelize.sync({ force: process.env.DROP_AND_SYNC === 'true' });
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
     if (process.env.SEED_DB === 'true') {
       const { seedUsers } = require('./database/seeders/index');
