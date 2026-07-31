@@ -99,6 +99,11 @@ sequelize.authenticate()
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
     await sequelize.sync();
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    if (process.env.SEED_DB === 'true') {
+      const { seedUsers } = require('./database/seeders/index');
+      await seedUsers();
+      logger.info('Database seeded.');
+    }
     return;
   })
   .then(() => {

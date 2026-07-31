@@ -76,8 +76,8 @@ router.delete('/users/:id', authenticate, authorize('super_admin'), userCtrl.dea
 // Notifications
 const notifCtrl = require('../controllers/notificationController');
 router.get('/notifications', authenticate, notifCtrl.getAll);
-router.patch('/notifications/:id/read', authenticate, notifCtrl.markRead);
 router.patch('/notifications/read-all', authenticate, notifCtrl.markAllRead);
+router.patch('/notifications/:id/read', authenticate, notifCtrl.markRead);
 
 // Expenses
 const expCtrl = require('../controllers/expenseController');

@@ -24,6 +24,14 @@ async function seed() {
   await sequelize.sync({ force: true });
   console.log('Tables created');
 
+  // Users
+  const users = await User.bulkCreate([
+    { name: 'Super Admin', email: 'admin@salesorder.com', password: 'admin123', role: 'super_admin', phone: '08012345678' },
+    { name: 'John Manager', email: 'manager@salesorder.com', password: 'admin123', role: 'manager', phone: '08023456789' },
+    { name: 'Mary Accountant', email: 'accountant@salesorder.com', password: 'admin123', role: 'accountant', phone: '08034567890' },
+    { name: 'Sales Staff', email: 'sales@salesorder.com', password: 'admin123', role: 'sales_staff', phone: '08045678901' },
+  ], { individualHooks: true });
+  console.log('Users seeded');
 
   // Categories
   const categories = await Category.bulkCreate([

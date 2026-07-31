@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seeders/index.js",
+    "drop": "node src/database/drop.js",
     "test": "jest --coverage"
   },
   "dependencies": {
