@@ -9,9 +9,38 @@ import {
 } from '../../components/ui/index';
 import { formatCurrency } from '../../utils/helpers';
 
+function NewCategoryForm({ onCreated, onCancel }) {
+  const qc = useQueryClient();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const mutation = useMutation({
+    mutationFn: (data) => productsAPI.createCategory(data),
+    onSuccess: (res) => {
+      toast.success('Category created');
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      onCreated(res.data.data);
+      reset();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to create category'),
+  });
+  return (
+    <div className="flex gap-2 items-end">
+      <Input
+        label="New Category Name *"
+        error={errors.name?.message}
+        {...register('name', { required: 'Required' })}
+      />
+      <Button type="button" size="sm" loading={mutation.isPending} onClick={handleSubmit((d) => mutation.mutate(d))}>
+        Add
+      </Button>
+      <Button type="button" size="sm" variant="ghost" onClick={onCancel}>✕</Button>
+    </div>
+  );
+}
+
 function ProductForm({ product, categories, onClose }) {
   const qc = useQueryClient();
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     defaultValues: product || { min_stock_level: 10 },
   });
   const mutation = useMutation({
@@ -30,10 +59,29 @@ function ProductForm({ product, categories, onClose }) {
         <Input label="SKU *" error={errors.sku?.message} {...register('sku', { required: 'Required' })} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select label="Category" {...register('category_id')}>
-          <option value="">Select category</option>
-          {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </Select>
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-1">
+            <label className="label mb-0">Category</label>
+            <button
+              type="button"
+              onClick={() => setShowNewCategory((v) => !v)}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              {showNewCategory ? 'Cancel' : '+ New Category'}
+            </button>
+          </div>
+          {showNewCategory ? (
+            <NewCategoryForm
+              onCreated={(cat) => { setValue('category_id', cat.id); setShowNewCategory(false); }}
+              onCancel={() => setShowNewCategory(false)}
+            />
+          ) : (
+            <Select {...register('category_id')}>
+              <option value="">Select category</option>
+              {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          )}
+        </div>
         <Input label="Supplier" {...register('supplier')} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

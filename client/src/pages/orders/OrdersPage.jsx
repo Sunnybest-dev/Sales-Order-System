@@ -10,7 +10,7 @@ import {
 } from '../../components/ui/index';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
-function OrderItemRow({ index, field, fields, remove, products, control, register, setValue }) {
+function OrderItemRow({ index, fields, remove, products, control, register, setValue }) {
   const unitPrice = useWatch({ control, name: `items.${index}.unit_price` });
   const quantity = useWatch({ control, name: `items.${index}.quantity` });
   const rowTotal = (parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0);
@@ -30,9 +30,7 @@ function OrderItemRow({ index, field, fields, remove, products, control, registe
         >
           <option value="">Select product</option>
           {products?.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} (Stock: {p.quantity})
-            </option>
+            <option key={p.id} value={p.id}>{p.name} (Stock: {p.quantity})</option>
           ))}
         </Select>
       </div>
@@ -55,13 +53,7 @@ function OrderItemRow({ index, field, fields, remove, products, control, registe
       <div className="flex items-center justify-between sm:col-span-2 sm:pb-2">
         <span className="text-sm font-medium text-gray-700">{formatCurrency(rowTotal)}</span>
         {fields.length > 1 && (
-          <button
-            type="button"
-            onClick={() => remove(index)}
-            className="text-red-400 hover:text-red-600 text-xl leading-none ml-2"
-          >
-            ×
-          </button>
+          <button type="button" onClick={() => remove(index)} className="text-red-400 hover:text-red-600 text-xl leading-none ml-2">×</button>
         )}
       </div>
     </div>
@@ -73,10 +65,7 @@ function CreateOrderForm({ onClose }) {
   const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm({
     defaultValues: {
       items: [{ product_id: '', quantity: 1, unit_price: 0 }],
-      tax_rate: 7.5,
-      discount_value: 0,
-      discount_type: 'fixed',
-      amount_paid: 0,
+      tax_rate: 7.5, discount_value: 0, discount_type: 'fixed', amount_paid: 0,
     },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
@@ -96,10 +85,7 @@ function CreateOrderForm({ onClose }) {
   const watchDiscountType = watch('discount_type');
   const watchPaid = parseFloat(watch('amount_paid') || 0);
 
-  const subtotal = watchItems.reduce(
-    (s, i) => s + (parseFloat(i.unit_price || 0) * parseInt(i.quantity || 0)),
-    0
-  );
+  const subtotal = watchItems.reduce((s, i) => s + (parseFloat(i.unit_price || 0) * parseInt(i.quantity || 0)), 0);
   const discountAmt = watchDiscountType === 'percentage' ? (subtotal * watchDiscount) / 100 : watchDiscount;
   const taxAmt = ((subtotal - discountAmt) * watchTax) / 100;
   const total = subtotal - discountAmt + taxAmt;
@@ -118,11 +104,7 @@ function CreateOrderForm({ onClose }) {
   return (
     <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Customer *"
-          error={errors.customer_id?.message}
-          {...register('customer_id', { required: 'Required' })}
-        >
+        <Select label="Customer *" error={errors.customer_id?.message} {...register('customer_id', { required: 'Required' })}>
           <option value="">Select customer</option>
           {customers?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </Select>
@@ -138,27 +120,13 @@ function CreateOrderForm({ onClose }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="label mb-0">Order Items *</label>
-          <button
-            type="button"
-            onClick={() => append({ product_id: '', quantity: 1, unit_price: 0 })}
-            className="text-xs text-primary-600 hover:underline"
-          >
+          <button type="button" onClick={() => append({ product_id: '', quantity: 1, unit_price: 0 })} className="text-xs text-primary-600 hover:underline">
             + Add Item
           </button>
         </div>
         <div className="space-y-3">
           {fields.map((field, i) => (
-            <OrderItemRow
-              key={field.id}
-              index={i}
-              field={field}
-              fields={fields}
-              remove={remove}
-              products={products}
-              control={control}
-              register={register}
-              setValue={setValue}
-            />
+            <OrderItemRow key={field.id} index={i} fields={fields} remove={remove} products={products} control={control} register={register} setValue={setValue} />
           ))}
         </div>
       </div>
@@ -175,31 +143,14 @@ function CreateOrderForm({ onClose }) {
           <Input label="Tax Rate (%)" type="number" step="0.01" {...register('tax_rate', { valueAsNumber: true })} />
           <Input label="Amount Paid (₦)" type="number" step="0.01" {...register('amount_paid', { valueAsNumber: true })} />
         </div>
-
         <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-medium">{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Discount</span>
-            <span className="text-red-500">-{formatCurrency(discountAmt)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Tax ({watchTax}%)</span>
-            <span>{formatCurrency(taxAmt)}</span>
-          </div>
-          <div className="flex justify-between border-t pt-2 font-bold text-base">
-            <span>Total</span>
-            <span>{formatCurrency(total)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Amount Paid</span>
-            <span className="text-green-600">{formatCurrency(watchPaid)}</span>
-          </div>
+          <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+          <div className="flex justify-between"><span className="text-gray-500">Discount</span><span className="text-red-500">-{formatCurrency(discountAmt)}</span></div>
+          <div className="flex justify-between"><span className="text-gray-500">Tax ({watchTax}%)</span><span>{formatCurrency(taxAmt)}</span></div>
+          <div className="flex justify-between border-t pt-2 font-bold text-base"><span>Total</span><span>{formatCurrency(total)}</span></div>
+          <div className="flex justify-between"><span className="text-gray-500">Amount Paid</span><span className="text-green-600">{formatCurrency(watchPaid)}</span></div>
           <div className={`flex justify-between font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            <span>Balance Due</span>
-            <span>{formatCurrency(balance)}</span>
+            <span>Balance Due</span><span>{formatCurrency(balance)}</span>
           </div>
         </div>
       </div>
@@ -219,12 +170,24 @@ function CreateOrderForm({ onClose }) {
 export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['orders', page, status],
-    queryFn: () => ordersAPI.getAll({ page, limit: 20, status }).then((r) => r.data),
+    queryKey: ['orders', page, status, search, fromDate, toDate],
+    queryFn: () => ordersAPI.getAll({
+      page, limit: 20,
+      ...(status && { status }),
+      ...(search && { search }),
+      ...(fromDate && { from_date: fromDate }),
+      ...(toDate && { to_date: toDate }),
+    }).then((r) => r.data),
   });
+
+  const hasFilters = search || fromDate || toDate;
+  const clearFilters = () => { setSearch(''); setFromDate(''); setToDate(''); setPage(1); };
 
   return (
     <div>
@@ -235,6 +198,7 @@ export default function OrdersPage() {
       />
 
       <div className="card">
+        {/* Status filter */}
         <div className="p-3 sm:p-4 border-b overflow-x-auto">
           <div className="flex gap-2 min-w-max">
             {['', 'pending', 'confirmed', 'paid', 'delivered', 'cancelled'].map((s) => (
@@ -249,6 +213,27 @@ export default function OrdersPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Search + date filters */}
+        <div className="p-3 sm:p-4 border-b flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1">
+            <input
+              className="input"
+              placeholder="Search order number..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+          <div>
+            <label className="label">From</label>
+            <input type="date" className="input" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1); }} />
+          </div>
+          <div>
+            <label className="label">To</label>
+            <input type="date" className="input" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1); }} />
+          </div>
+          {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>}
         </div>
 
         {isLoading ? (
@@ -304,9 +289,7 @@ export default function OrdersPage() {
                     <span className="text-gray-400">{formatDate(o.created_at)}</span>
                     <div className="text-right">
                       <span className="font-semibold text-gray-900">{formatCurrency(o.total_amount)}</span>
-                      {o.balance_due > 0 && (
-                        <span className="ml-2 text-red-600">Due: {formatCurrency(o.balance_due)}</span>
-                      )}
+                      {o.balance_due > 0 && <span className="ml-2 text-red-600">Due: {formatCurrency(o.balance_due)}</span>}
                     </div>
                   </div>
                 </Link>

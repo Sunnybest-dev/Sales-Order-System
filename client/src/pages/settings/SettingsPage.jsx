@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { usersAPI, authAPI } from '../../api/services';
+import { usersAPI, authAPI, auditAPI } from '../../api/services';
 import useAuthStore from '../../store/authStore';
-import { Button, Input, Select, Modal, Badge, PageHeader } from '../../components/ui/index';
-import { formatDate } from '../../utils/helpers';
+import { Button, Input, Select, Modal, Badge, PageHeader, LoadingPage, Pagination } from '../../components/ui/index';
+import { formatDate, formatDateTime } from '../../utils/helpers';
 
 function AddUserForm({ onClose }) {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -16,16 +16,8 @@ function AddUserForm({ onClose }) {
   });
   return (
     <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
-      <Input
-        label="Full Name *"
-        error={errors.name?.message}
-        {...register('name', { required: 'Required' })}
-      />
-      <Input
-        label="Email *" type="email"
-        error={errors.email?.message}
-        {...register('email', { required: 'Required' })}
-      />
+      <Input label="Full Name *" error={errors.name?.message} {...register('name', { required: 'Required' })} />
+      <Input label="Email *" type="email" error={errors.email?.message} {...register('email', { required: 'Required' })} />
       <Input
         label="Password *" type="password"
         error={errors.password?.message}
@@ -38,9 +30,41 @@ function AddUserForm({ onClose }) {
         <option value="sales_staff">Sales Staff</option>
       </Select>
       <Input label="Phone" {...register('phone')} />
-      <div className="flex flex-col sm:flex-row gap-3 justify-end">
-        <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
-        <Button type="submit" loading={mutation.isPending} className="w-full sm:w-auto">Create User</Button>
+      <div className="flex gap-3 justify-end">
+        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+        <Button type="submit" loading={mutation.isPending}>Create User</Button>
+      </div>
+    </form>
+  );
+}
+
+function EditUserForm({ user: editUser, onClose }) {
+  const qc = useQueryClient();
+  const { register, handleSubmit } = useForm({
+    defaultValues: { name: editUser.name, phone: editUser.phone, role: editUser.role },
+  });
+  const mutation = useMutation({
+    mutationFn: (data) => usersAPI.update(editUser.id, data),
+    onSuccess: () => {
+      toast.success('User updated');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      onClose();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Update failed'),
+  });
+  return (
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <Input label="Full Name" {...register('name')} />
+      <Input label="Phone" {...register('phone')} />
+      <Select label="Role" {...register('role')}>
+        <option value="manager">Manager</option>
+        <option value="accountant">Accountant</option>
+        <option value="sales_staff">Sales Staff</option>
+        <option value="super_admin">Super Admin</option>
+      </Select>
+      <div className="flex gap-3 justify-end">
+        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+        <Button type="submit" loading={mutation.isPending}>Save Changes</Button>
       </div>
     </form>
   );
@@ -65,11 +89,62 @@ function ProfileForm() {
   );
 }
 
+function AuditLogsTab() {
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useQuery({
+    queryKey: ['audit-logs', page],
+    queryFn: () => auditAPI.getAll({ page, limit: 50 }).then((r) => r.data),
+  });
+
+  if (isLoading) return <LoadingPage />;
+
+  return (
+    <div className="card">
+      <div className="p-4 border-b">
+        <h3 className="font-semibold text-gray-800">Audit Logs</h3>
+        <p className="text-xs text-gray-400 mt-0.5">All system write operations</p>
+      </div>
+      <div className="hidden sm:block table-container rounded-none border-0">
+        <table className="table">
+          <thead>
+            <tr><th>User</th><th>Action</th><th>Entity</th><th>IP</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            {data?.data?.map((log) => (
+              <tr key={log.id}>
+                <td className="font-medium text-gray-900">{log.user?.name || '—'}</td>
+                <td><span className="badge-blue capitalize">{log.action}</span></td>
+                <td className="text-gray-600 capitalize">{log.entity_type} {log.entity_id ? `#${log.entity_id}` : ''}</td>
+                <td className="font-mono text-xs text-gray-400">{log.ip_address || '—'}</td>
+                <td className="text-gray-500">{formatDateTime(log.created_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="sm:hidden divide-y divide-gray-100">
+        {data?.data?.map((log) => (
+          <div key={log.id} className="p-4">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="font-medium text-gray-900 text-sm">{log.user?.name || '—'}</p>
+              <span className="badge-blue capitalize text-xs">{log.action}</span>
+            </div>
+            <p className="text-xs text-gray-500 capitalize">{log.entity_type}</p>
+            <p className="text-xs text-gray-400">{formatDateTime(log.created_at)}</p>
+          </div>
+        ))}
+      </div>
+      <Pagination meta={data?.meta} onPageChange={setPage} />
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
   const [tab, setTab] = useState('profile');
   const [showAddUser, setShowAddUser] = useState(false);
+  const [editUser, setEditUser] = useState(null);
 
   const { data: users } = useQuery({
     queryKey: ['users'],
@@ -89,6 +164,7 @@ export default function SettingsPage() {
   const tabs = [
     { key: 'profile', label: '👤 Profile' },
     { key: 'users', label: '👥 Users', roles: ['super_admin', 'manager'] },
+    { key: 'audit', label: '📋 Audit Logs', roles: ['super_admin'] },
     { key: 'company', label: '🏢 Company' },
   ].filter((t) => !t.roles || t.roles.includes(user?.role));
 
@@ -139,7 +215,6 @@ export default function SettingsPage() {
               <Button onClick={() => setShowAddUser(true)} size="sm">+ Add User</Button>
             )}
           </div>
-
           <div className="hidden sm:block table-container rounded-none border-0">
             <table className="table">
               <thead>
@@ -154,22 +229,24 @@ export default function SettingsPage() {
                     <td className="text-gray-500">{u.last_login ? formatDate(u.last_login) : 'Never'}</td>
                     <td><Badge status={u.is_active ? 'active' : 'inactive'} /></td>
                     <td>
-                      {u.id !== user?.id && u.is_active && (
-                        <button
-                          onClick={() => deactivateMutation.mutate(u.id)}
-                          disabled={deactivateMutation.isPending}
-                          className="text-xs text-red-500 hover:underline disabled:opacity-50"
-                        >
-                          Deactivate
-                        </button>
-                      )}
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditUser(u)} className="text-xs text-primary-600 hover:underline">Edit</button>
+                        {u.id !== user?.id && u.is_active && (
+                          <button
+                            onClick={() => deactivateMutation.mutate(u.id)}
+                            disabled={deactivateMutation.isPending}
+                            className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
           <div className="sm:hidden divide-y divide-gray-100">
             {users?.map((u) => (
               <div key={u.id} className="p-4">
@@ -180,23 +257,28 @@ export default function SettingsPage() {
                   </div>
                   <Badge status={u.is_active ? 'active' : 'inactive'} />
                 </div>
-                <div className="flex items-center justify-between mt-1">
+                <div className="flex items-center justify-between mt-2">
                   <span className="badge-blue capitalize text-xs">{u.role?.replace('_', ' ')}</span>
-                  {u.id !== user?.id && u.is_active && (
-                    <button
-                      onClick={() => deactivateMutation.mutate(u.id)}
-                      disabled={deactivateMutation.isPending}
-                      className="text-xs text-red-500 hover:underline disabled:opacity-50"
-                    >
-                      Deactivate
-                    </button>
-                  )}
+                  <div className="flex gap-3">
+                    <button onClick={() => setEditUser(u)} className="text-xs text-primary-600 hover:underline">Edit</button>
+                    {u.id !== user?.id && u.is_active && (
+                      <button
+                        onClick={() => deactivateMutation.mutate(u.id)}
+                        disabled={deactivateMutation.isPending}
+                        className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {tab === 'audit' && <AuditLogsTab />}
 
       {tab === 'company' && (
         <div className="card p-4 sm:p-6 max-w-lg">
@@ -207,23 +289,22 @@ export default function SettingsPage() {
               { label: 'Version', value: '1.0.0' },
               { label: 'API URL', value: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1' },
             ].map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-100 gap-1"
-              >
+              <div key={item.label} className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-100 gap-1">
                 <span className="text-gray-500">{item.label}</span>
                 <span className="font-medium text-gray-800 break-all">{item.value}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-4">
-            Additional company details can be configured via environment variables.
-          </p>
+          <p className="text-xs text-gray-400 mt-4">Additional company details can be configured via environment variables.</p>
         </div>
       )}
 
       <Modal open={showAddUser} onClose={() => setShowAddUser(false)} title="Add New User" size="md">
         <AddUserForm onClose={() => setShowAddUser(false)} />
+      </Modal>
+
+      <Modal open={!!editUser} onClose={() => setEditUser(null)} title="Edit User" size="md">
+        {editUser && <EditUserForm user={editUser} onClose={() => setEditUser(null)} />}
       </Modal>
     </div>
   );

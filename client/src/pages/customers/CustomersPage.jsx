@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
@@ -103,7 +104,11 @@ export default function CustomersPage() {
                   {data.data.map((c) => (
                     <tr key={c.id}>
                       <td className="font-mono text-xs text-gray-500">{c.customer_code}</td>
-                      <td className="font-medium text-gray-900">{c.name}</td>
+                      <td>
+                        <Link to={`/customers/${c.id}`} className="font-medium text-primary-600 hover:underline">
+                          {c.name}
+                        </Link>
+                      </td>
                       <td className="text-gray-600">{c.phone || '—'}</td>
                       <td className="text-gray-600 max-w-[160px] truncate">{c.email || '—'}</td>
                       <td className={`font-medium ${c.outstanding_balance > 0 ? 'text-red-600' : 'text-gray-700'}`}>
@@ -113,6 +118,7 @@ export default function CustomersPage() {
                       <td><Badge status={c.is_active ? 'active' : 'inactive'} /></td>
                       <td>
                         <div className="flex gap-2">
+                          <Link to={`/customers/${c.id}`} className="text-xs text-gray-500 hover:underline">View</Link>
                           <button onClick={() => setModal(c)} className="text-xs text-primary-600 hover:underline">Edit</button>
                           <button onClick={() => setDeleteTarget(c)} className="text-xs text-red-500 hover:underline">Delete</button>
                         </div>
@@ -128,7 +134,9 @@ export default function CustomersPage() {
                 <div key={c.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{c.name}</p>
+                      <Link to={`/customers/${c.id}`} className="font-medium text-primary-600 truncate block">
+                        {c.name}
+                      </Link>
                       <p className="text-xs text-gray-400 font-mono">{c.customer_code}</p>
                     </div>
                     <Badge status={c.is_active ? 'active' : 'inactive'} />
@@ -141,6 +149,7 @@ export default function CustomersPage() {
                     )}
                   </div>
                   <div className="flex gap-3">
+                    <Link to={`/customers/${c.id}`} className="text-xs text-gray-500 hover:underline">View</Link>
                     <button onClick={() => setModal(c)} className="text-xs text-primary-600 hover:underline">Edit</button>
                     <button onClick={() => setDeleteTarget(c)} className="text-xs text-red-500 hover:underline">Deactivate</button>
                   </div>

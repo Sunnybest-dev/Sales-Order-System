@@ -11,6 +11,7 @@ import CustomersPage from './pages/customers/CustomersPage';
 import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
+import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import InvoicesPage from './pages/invoices/InvoicesPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import ExpensesPage from './pages/expenses/ExpensesPage';
@@ -70,6 +71,7 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="customers/:id" element={<CustomerDetailPage />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:id" element={<OrderDetailPage />} />

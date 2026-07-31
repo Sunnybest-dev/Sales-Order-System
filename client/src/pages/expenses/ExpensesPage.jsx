@@ -27,11 +27,7 @@ function ExpenseForm({ expense, onClose }) {
   });
   return (
     <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
-      <Input
-        label="Title *"
-        error={errors.title?.message}
-        {...register('title', { required: 'Required' })}
-      />
+      <Input label="Title *" error={errors.title?.message} {...register('title', { required: 'Required' })} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select label="Category" {...register('category')}>
           <option value="">Select category</option>
@@ -43,15 +39,11 @@ function ExpenseForm({ expense, onClose }) {
           {...register('amount', { required: 'Required', valueAsNumber: true })}
         />
       </div>
-      <Input
-        label="Date *" type="date"
-        error={errors.date?.message}
-        {...register('date', { required: 'Required' })}
-      />
+      <Input label="Date *" type="date" error={errors.date?.message} {...register('date', { required: 'Required' })} />
       <Input label="Description" {...register('description')} />
-      <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
-        <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
-        <Button type="submit" loading={mutation.isPending} className="w-full sm:w-auto">
+      <div className="flex gap-3 justify-end pt-2">
+        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+        <Button type="submit" loading={mutation.isPending}>
           {expense ? 'Update' : 'Record'} Expense
         </Button>
       </div>
@@ -64,10 +56,18 @@ export default function ExpensesPage() {
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['expenses', page],
-    queryFn: () => expensesAPI.getAll({ page, limit: 20 }).then((r) => r.data),
+    queryKey: ['expenses', page, filterCategory, fromDate, toDate],
+    queryFn: () => expensesAPI.getAll({
+      page, limit: 20,
+      ...(filterCategory && { category: filterCategory }),
+      ...(fromDate && { from_date: fromDate }),
+      ...(toDate && { to_date: toDate }),
+    }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -82,6 +82,9 @@ export default function ExpensesPage() {
 
   const total = data?.data?.reduce((s, e) => s + parseFloat(e.amount || 0), 0) || 0;
 
+  const clearFilters = () => { setFilterCategory(''); setFromDate(''); setToDate(''); setPage(1); };
+  const hasFilters = filterCategory || fromDate || toDate;
+
   return (
     <div>
       <PageHeader
@@ -92,9 +95,31 @@ export default function ExpensesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="card p-4 sm:p-5">
-          <p className="text-sm text-gray-500">Total Expenses (Page)</p>
+          <p className="text-sm text-gray-500">Total {hasFilters ? '(Filtered)' : '(Page)'}</p>
           <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{formatCurrency(total)}</p>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card p-3 sm:p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+        <div className="flex-1">
+          <label className="label">Category</label>
+          <select className="input" value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}>
+            <option value="">All Categories</option>
+            {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="label">From Date</label>
+          <input type="date" className="input" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1); }} />
+        </div>
+        <div className="flex-1">
+          <label className="label">To Date</label>
+          <input type="date" className="input" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1); }} />
+        </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+        )}
       </div>
 
       <div className="card">
@@ -107,7 +132,7 @@ export default function ExpensesPage() {
             <div className="hidden sm:block table-container rounded-none border-0">
               <table className="table">
                 <thead>
-                  <tr><th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Actions</th></tr>
+                  <tr><th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Description</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {data.data.map((e) => (
@@ -116,6 +141,7 @@ export default function ExpensesPage() {
                       <td><span className="badge-blue">{e.category || '—'}</span></td>
                       <td className="font-medium text-red-600">{formatCurrency(e.amount)}</td>
                       <td className="text-gray-500">{formatDate(e.date)}</td>
+                      <td className="text-gray-500 max-w-[160px] truncate">{e.description || '—'}</td>
                       <td>
                         <div className="flex gap-2">
                           <button onClick={() => setModal(e)} className="text-xs text-primary-600 hover:underline">Edit</button>
