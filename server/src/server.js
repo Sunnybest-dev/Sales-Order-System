@@ -15,30 +15,17 @@ const logger = require('./config/logger');
 
 const app = express();
 
-const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-];
-
 const corsOptions = {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    const envOrigins = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
-    const allAllowed = [...ALLOWED_ORIGINS, ...envOrigins];
-    if (allAllowed.includes(origin) || /\.vercel\.app$/.test(origin) || /\.render\.com$/.test(origin)) {
-      return cb(null, true);
-    }
-    cb(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: true, // reflect request origin — allows all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// CORS must come before helmet so preflight OPTIONS requests are handled first
+// CORS and preflight must come before everything else
+app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // explicitly handle all preflight requests
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(xss());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 app.use(express.json({ limit: '10mb' }));
