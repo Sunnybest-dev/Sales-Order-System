@@ -6,6 +6,13 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Silent endpoints — errors on these are handled by the caller, no global toast
+const SILENT_URLS = ['/auth/profile', '/auth/refresh', '/auth/logout', '/notifications'];
+
+const isSilent = (config) =>
+  config?.silent === true ||
+  SILENT_URLS.some((url) => config?.url?.includes(url));
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -16,7 +23,13 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED' && !original._retry) {
+
+    // Token expired — attempt refresh
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.code === 'TOKEN_EXPIRED' &&
+      !original._retry
+    ) {
       original._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
@@ -28,9 +41,15 @@ api.interceptors.response.use(
       } catch {
         localStorage.clear();
         window.location.href = '/login';
+        return Promise.reject(error);
       }
     }
-    if (error.response?.status !== 401) toast.error(error.response?.data?.message || 'Something went wrong');
+
+    // Don't show toast for 401s or silent requests
+    if (error.response?.status !== 401 && !isSilent(original)) {
+      toast.error(error.response?.data?.message || 'Something went wrong');
+    }
+
     return Promise.reject(error);
   }
 );
