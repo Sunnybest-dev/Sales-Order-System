@@ -1,18 +1,11 @@
 {
-  "name": "sales-order-system-api",
+  "name": "sales-order-server",
   "version": "1.0.0",
-  "description": "Sales Order Accounting Information System - Backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "migrate": "node src/database/migrate.js",
-    "seed": "node src/database/seeders/index.js",
-    "drop": "node src/database/drop.js",
-    "test": "jest --coverage"
-  },
-  "engines": {
-    "node": "24.x"
+    "seed": "node src/database/seeders/index.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -28,7 +21,6 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.6.5",
-    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
     "pdfkit": "^0.14.0",
     "sequelize": "^6.35.1",
@@ -37,8 +29,6 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.2",
-    "supertest": "^6.3.3"
+    "nodemon": "^3.0.2"
   }
 }

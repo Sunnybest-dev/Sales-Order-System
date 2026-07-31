@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { ordersAPI, customersAPI, productsAPI } from '../../api/services';
 import {
@@ -10,41 +10,100 @@ import {
 } from '../../components/ui/index';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
+function OrderItemRow({ index, field, fields, remove, products, control, register, setValue }) {
+  const unitPrice = useWatch({ control, name: `items.${index}.unit_price` });
+  const quantity = useWatch({ control, name: `items.${index}.quantity` });
+  const rowTotal = (parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0);
+
+  const handleProductChange = (e) => {
+    const product = products?.find((p) => String(p.id) === e.target.value);
+    if (product) setValue(`items.${index}.unit_price`, product.selling_price);
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-end">
+      <div className="sm:col-span-5">
+        <Select
+          label={index === 0 ? 'Product' : undefined}
+          {...register(`items.${index}.product_id`, { required: true })}
+          onChange={handleProductChange}
+        >
+          <option value="">Select product</option>
+          {products?.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} (Stock: {p.quantity})
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:contents">
+        <div className="sm:col-span-2">
+          <Input
+            label={index === 0 ? 'Qty' : undefined}
+            type="number" min="1" placeholder="Qty"
+            {...register(`items.${index}.quantity`, { required: true, min: 1, valueAsNumber: true })}
+          />
+        </div>
+        <div className="sm:col-span-3">
+          <Input
+            label={index === 0 ? 'Unit Price' : undefined}
+            type="number" step="0.01" placeholder="Price"
+            {...register(`items.${index}.unit_price`, { valueAsNumber: true })}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between sm:col-span-2 sm:pb-2">
+        <span className="text-sm font-medium text-gray-700">{formatCurrency(rowTotal)}</span>
+        {fields.length > 1 && (
+          <button
+            type="button"
+            onClick={() => remove(index)}
+            className="text-red-400 hover:text-red-600 text-xl leading-none ml-2"
+          >
+            ×
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CreateOrderForm({ onClose }) {
   const navigate = useNavigate();
   const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm({
     defaultValues: {
       items: [{ product_id: '', quantity: 1, unit_price: 0 }],
-      tax_rate: 7.5, discount_value: 0, discount_type: 'fixed', amount_paid: 0,
+      tax_rate: 7.5,
+      discount_value: 0,
+      discount_type: 'fixed',
+      amount_paid: 0,
     },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   const { data: customers } = useQuery({
     queryKey: ['customers-all'],
-    queryFn: () => customersAPI.getAll({ limit: 200 }).then(r => r.data.data),
+    queryFn: () => customersAPI.getAll({ limit: 200 }).then((r) => r.data.data),
   });
   const { data: products } = useQuery({
     queryKey: ['products-all'],
-    queryFn: () => productsAPI.getAll({ limit: 200 }).then(r => r.data.data),
+    queryFn: () => productsAPI.getAll({ limit: 200 }).then((r) => r.data.data),
   });
 
-  const watchItems = watch('items');
+  const watchItems = useWatch({ control, name: 'items' });
   const watchTax = parseFloat(watch('tax_rate') || 0);
   const watchDiscount = parseFloat(watch('discount_value') || 0);
   const watchDiscountType = watch('discount_type');
   const watchPaid = parseFloat(watch('amount_paid') || 0);
 
-  const subtotal = watchItems.reduce((s, i) => s + (parseFloat(i.unit_price || 0) * parseInt(i.quantity || 0)), 0);
+  const subtotal = watchItems.reduce(
+    (s, i) => s + (parseFloat(i.unit_price || 0) * parseInt(i.quantity || 0)),
+    0
+  );
   const discountAmt = watchDiscountType === 'percentage' ? (subtotal * watchDiscount) / 100 : watchDiscount;
   const taxAmt = ((subtotal - discountAmt) * watchTax) / 100;
   const total = subtotal - discountAmt + taxAmt;
   const balance = total - watchPaid;
-
-  const handleProductChange = (index, productId) => {
-    const product = products?.find(p => p.id === productId);
-    if (product) setValue(`items.${index}.unit_price`, product.selling_price);
-  };
 
   const mutation = useMutation({
     mutationFn: (data) => ordersAPI.create(data),
@@ -53,14 +112,19 @@ function CreateOrderForm({ onClose }) {
       onClose();
       navigate(`/orders/${res.data.data.id}`);
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to create order'),
   });
 
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-5">
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select label="Customer *" error={errors.customer_id?.message} {...register('customer_id', { required: 'Required' })}>
+        <Select
+          label="Customer *"
+          error={errors.customer_id?.message}
+          {...register('customer_id', { required: 'Required' })}
+        >
           <option value="">Select customer</option>
-          {customers?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {customers?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </Select>
         <Select label="Payment Method" {...register('payment_method')}>
           <option value="cash">Cash</option>
@@ -71,7 +135,6 @@ function CreateOrderForm({ onClose }) {
         </Select>
       </div>
 
-      {/* Order Items */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="label mb-0">Order Items *</label>
@@ -79,55 +142,27 @@ function CreateOrderForm({ onClose }) {
             type="button"
             onClick={() => append({ product_id: '', quantity: 1, unit_price: 0 })}
             className="text-xs text-primary-600 hover:underline"
-          >+ Add Item</button>
+          >
+            + Add Item
+          </button>
         </div>
         <div className="space-y-3">
           {fields.map((field, i) => (
-            <div key={field.id} className="border border-gray-200 rounded-lg p-3 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-end">
-              {/* Product select — full width on mobile */}
-              <div className="sm:col-span-5">
-                <Select
-                  label={i === 0 ? 'Product' : undefined}
-                  {...register(`items.${i}.product_id`, { required: true })}
-                  onChange={e => { register(`items.${i}.product_id`).onChange(e); handleProductChange(i, e.target.value); }}
-                >
-                  <option value="">Select product</option>
-                  {products?.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (Stock: {p.quantity})</option>
-                  ))}
-                </Select>
-              </div>
-              {/* Qty + Price row on mobile */}
-              <div className="grid grid-cols-2 gap-2 sm:contents">
-                <div className="sm:col-span-2">
-                  <Input
-                    label={i === 0 ? 'Qty' : undefined}
-                    type="number" min="1" placeholder="Qty"
-                    {...register(`items.${i}.quantity`, { required: true, min: 1, valueAsNumber: true })}
-                  />
-                </div>
-                <div className="sm:col-span-3">
-                  <Input
-                    label={i === 0 ? 'Unit Price' : undefined}
-                    type="number" step="0.01" placeholder="Price"
-                    {...register(`items.${i}.unit_price`, { valueAsNumber: true })}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between sm:col-span-2 sm:pb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  {formatCurrency((watchItems[i]?.unit_price || 0) * (watchItems[i]?.quantity || 0))}
-                </span>
-                {fields.length > 1 && (
-                  <button type="button" onClick={() => remove(i)} className="text-red-400 hover:text-red-600 text-xl leading-none ml-2">×</button>
-                )}
-              </div>
-            </div>
+            <OrderItemRow
+              key={field.id}
+              index={i}
+              field={field}
+              fields={fields}
+              remove={remove}
+              products={products}
+              control={control}
+              register={register}
+              setValue={setValue}
+            />
           ))}
         </div>
       </div>
 
-      {/* Discount / Tax / Payment */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
@@ -141,15 +176,30 @@ function CreateOrderForm({ onClose }) {
           <Input label="Amount Paid (₦)" type="number" step="0.01" {...register('amount_paid', { valueAsNumber: true })} />
         </div>
 
-        {/* Order summary */}
         <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Discount</span><span className="text-red-500">-{formatCurrency(discountAmt)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Tax ({watchTax}%)</span><span>{formatCurrency(taxAmt)}</span></div>
-          <div className="flex justify-between border-t pt-2 font-bold text-base"><span>Total</span><span>{formatCurrency(total)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Amount Paid</span><span className="text-green-600">{formatCurrency(watchPaid)}</span></div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Subtotal</span>
+            <span className="font-medium">{formatCurrency(subtotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Discount</span>
+            <span className="text-red-500">-{formatCurrency(discountAmt)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Tax ({watchTax}%)</span>
+            <span>{formatCurrency(taxAmt)}</span>
+          </div>
+          <div className="flex justify-between border-t pt-2 font-bold text-base">
+            <span>Total</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Amount Paid</span>
+            <span className="text-green-600">{formatCurrency(watchPaid)}</span>
+          </div>
           <div className={`flex justify-between font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            <span>Balance Due</span><span>{formatCurrency(balance)}</span>
+            <span>Balance Due</span>
+            <span>{formatCurrency(balance)}</span>
           </div>
         </div>
       </div>
@@ -173,8 +223,7 @@ export default function OrdersPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['orders', page, status],
-    queryFn: () => ordersAPI.getAll({ page, limit: 20, status }).then(r => r.data),
-    keepPreviousData: true,
+    queryFn: () => ordersAPI.getAll({ page, limit: 20, status }).then((r) => r.data),
   });
 
   return (
@@ -186,14 +235,15 @@ export default function OrdersPage() {
       />
 
       <div className="card">
-        {/* Status filter — scrollable on mobile */}
         <div className="p-3 sm:p-4 border-b overflow-x-auto">
           <div className="flex gap-2 min-w-max">
-            {['', 'pending', 'confirmed', 'paid', 'delivered', 'cancelled'].map(s => (
+            {['', 'pending', 'confirmed', 'paid', 'delivered', 'cancelled'].map((s) => (
               <button
                 key={s}
                 onClick={() => { setStatus(s); setPage(1); }}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${status === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  status === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               >
                 {s || 'All'}
               </button>
@@ -201,19 +251,22 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {isLoading ? <LoadingPage /> : data?.data?.length === 0 ? (
+        {isLoading ? (
+          <LoadingPage />
+        ) : data?.data?.length === 0 ? (
           <EmptyState icon="🛒" title="No orders found" />
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block table-container rounded-none border-0">
               <table className="table">
-                <thead><tr>
-                  <th>Order #</th><th>Customer</th><th>Total</th>
-                  <th>Paid</th><th>Balance</th><th>Status</th><th>Date</th><th></th>
-                </tr></thead>
+                <thead>
+                  <tr>
+                    <th>Order #</th><th>Customer</th><th>Total</th>
+                    <th>Paid</th><th>Balance</th><th>Status</th><th>Date</th><th></th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.data.map(o => (
+                  {data.data.map((o) => (
                     <tr key={o.id}>
                       <td>
                         <Link to={`/orders/${o.id}`} className="font-medium text-primary-600 hover:underline">
@@ -237,9 +290,8 @@ export default function OrdersPage() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden divide-y divide-gray-100">
-              {data.data.map(o => (
+              {data.data.map((o) => (
                 <Link key={o.id} to={`/orders/${o.id}`} className="block p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div>

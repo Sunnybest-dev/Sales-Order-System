@@ -30,8 +30,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    const message = error.response?.data?.message || 'Something went wrong';
-    if (error.response?.status !== 401) toast.error(message);
+    if (error.response?.status !== 401) toast.error(error.response?.data?.message || 'Something went wrong');
     return Promise.reject(error);
   }
 );

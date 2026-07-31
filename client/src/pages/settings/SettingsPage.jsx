@@ -12,17 +12,26 @@ function AddUserForm({ onClose }) {
   const mutation = useMutation({
     mutationFn: (data) => usersAPI.register(data),
     onSuccess: () => { toast.success('User created'); onClose(); },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to create user'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
-      <Input label="Full Name *" error={errors.name?.message} {...register('name', { required: 'Required' })} />
-      <Input label="Email *" type="email" error={errors.email?.message} {...register('email', { required: 'Required' })} />
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <Input
+        label="Full Name *"
+        error={errors.name?.message}
+        {...register('name', { required: 'Required' })}
+      />
+      <Input
+        label="Email *" type="email"
+        error={errors.email?.message}
+        {...register('email', { required: 'Required' })}
+      />
       <Input
         label="Password *" type="password"
         error={errors.password?.message}
         {...register('password', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })}
       />
-      <Select label="Role *" {...register('role', { required: 'Required' })}>
+      <Select label="Role *" error={errors.role?.message} {...register('role', { required: 'Required' })}>
         <option value="">Select role</option>
         <option value="manager">Manager</option>
         <option value="accountant">Accountant</option>
@@ -39,16 +48,19 @@ function AddUserForm({ onClose }) {
 
 function ProfileForm() {
   const { user, setUser } = useAuthStore();
-  const { register, handleSubmit } = useForm({ defaultValues: { name: user?.name, phone: user?.phone } });
+  const { register, handleSubmit } = useForm({
+    defaultValues: { name: user?.name, phone: user?.phone },
+  });
   const mutation = useMutation({
     mutationFn: (data) => authAPI.updateProfile(data),
     onSuccess: (res) => { setUser(res.data.data); toast.success('Profile updated'); },
+    onError: (err) => toast.error(err.response?.data?.message || 'Update failed'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
       <Input label="Full Name" {...register('name')} />
       <Input label="Phone" {...register('phone')} />
-      <Button type="submit" loading={mutation.isPending} className="w-full sm:w-auto">Save Changes</Button>
+      <Button type="submit" loading={mutation.isPending}>Save Changes</Button>
     </form>
   );
 }
@@ -61,33 +73,40 @@ export default function SettingsPage() {
 
   const { data: users } = useQuery({
     queryKey: ['users'],
-    queryFn: () => usersAPI.getAll().then(r => r.data.data),
+    queryFn: () => usersAPI.getAll().then((r) => r.data.data),
     enabled: tab === 'users',
   });
 
   const deactivateMutation = useMutation({
     mutationFn: (id) => usersAPI.deactivate(id),
-    onSuccess: () => { toast.success('User deactivated'); qc.invalidateQueries(['users']); },
+    onSuccess: () => {
+      toast.success('User deactivated');
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
 
   const tabs = [
     { key: 'profile', label: '👤 Profile' },
     { key: 'users', label: '👥 Users', roles: ['super_admin', 'manager'] },
     { key: 'company', label: '🏢 Company' },
-  ].filter(t => !t.roles || t.roles.includes(user?.role));
+  ].filter((t) => !t.roles || t.roles.includes(user?.role));
 
   return (
     <div>
       <PageHeader title="Settings" subtitle="Manage your account and system settings" />
 
-      {/* Tabs — scrollable on mobile */}
       <div className="overflow-x-auto mb-4 sm:mb-6">
         <div className="flex gap-1 border-b border-gray-200 min-w-max">
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === t.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                tab === t.key
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
             >
               {t.label}
             </button>
@@ -95,7 +114,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Profile Tab */}
       {tab === 'profile' && (
         <div className="card p-4 sm:p-6 max-w-lg">
           <h3 className="font-semibold text-gray-800 mb-4">Profile Information</h3>
@@ -113,7 +131,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Users Tab */}
       {tab === 'users' && (
         <div className="card">
           <div className="flex items-center justify-between p-4 sm:p-5 border-b gap-3">
@@ -123,12 +140,13 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Desktop table */}
           <div className="hidden sm:block table-container rounded-none border-0">
             <table className="table">
-              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
+              </thead>
               <tbody>
-                {users?.map(u => (
+                {users?.map((u) => (
                   <tr key={u.id}>
                     <td className="font-medium text-gray-900">{u.name}</td>
                     <td className="text-gray-600">{u.email}</td>
@@ -137,7 +155,11 @@ export default function SettingsPage() {
                     <td><Badge status={u.is_active ? 'active' : 'inactive'} /></td>
                     <td>
                       {u.id !== user?.id && u.is_active && (
-                        <button onClick={() => deactivateMutation.mutate(u.id)} className="text-xs text-red-500 hover:underline">
+                        <button
+                          onClick={() => deactivateMutation.mutate(u.id)}
+                          disabled={deactivateMutation.isPending}
+                          className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                        >
                           Deactivate
                         </button>
                       )}
@@ -148,9 +170,8 @@ export default function SettingsPage() {
             </table>
           </div>
 
-          {/* Mobile cards */}
           <div className="sm:hidden divide-y divide-gray-100">
-            {users?.map(u => (
+            {users?.map((u) => (
               <div key={u.id} className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
@@ -162,7 +183,11 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between mt-1">
                   <span className="badge-blue capitalize text-xs">{u.role?.replace('_', ' ')}</span>
                   {u.id !== user?.id && u.is_active && (
-                    <button onClick={() => deactivateMutation.mutate(u.id)} className="text-xs text-red-500 hover:underline">
+                    <button
+                      onClick={() => deactivateMutation.mutate(u.id)}
+                      disabled={deactivateMutation.isPending}
+                      className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                    >
                       Deactivate
                     </button>
                   )}
@@ -173,24 +198,27 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Company Tab */}
       {tab === 'company' && (
         <div className="card p-4 sm:p-6 max-w-lg">
           <h3 className="font-semibold text-gray-800 mb-4">Company Information</h3>
           <div className="space-y-2 text-sm">
             {[
-              { label: 'Company Name', value: import.meta.env.VITE_COMPANY_NAME || 'Your Company' },
-              { label: 'Email', value: import.meta.env.VITE_COMPANY_EMAIL || '—' },
-              { label: 'Phone', value: import.meta.env.VITE_COMPANY_PHONE || '—' },
-              { label: 'Address', value: import.meta.env.VITE_COMPANY_ADDRESS || '—' },
-            ].map(item => (
-              <div key={item.label} className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-100 gap-1">
+              { label: 'System Name', value: 'SalesOrder Pro' },
+              { label: 'Version', value: '1.0.0' },
+              { label: 'API URL', value: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1' },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-100 gap-1"
+              >
                 <span className="text-gray-500">{item.label}</span>
-                <span className="font-medium text-gray-800">{item.value}</span>
+                <span className="font-medium text-gray-800 break-all">{item.value}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-4">Company details are configured via environment variables on the server.</p>
+          <p className="text-xs text-gray-400 mt-4">
+            Additional company details can be configured via environment variables.
+          </p>
         </div>
       )}
 

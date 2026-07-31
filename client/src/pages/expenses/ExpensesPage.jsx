@@ -9,6 +9,8 @@ import {
 } from '../../components/ui/index';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
+const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Payroll', 'Transport', 'Marketing', 'Supplies', 'Maintenance', 'Other'];
+
 function ExpenseForm({ expense, onClose }) {
   const qc = useQueryClient();
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -18,23 +20,34 @@ function ExpenseForm({ expense, onClose }) {
     mutationFn: (data) => expense ? expensesAPI.update(expense.id, data) : expensesAPI.create(data),
     onSuccess: () => {
       toast.success(expense ? 'Expense updated' : 'Expense recorded');
-      qc.invalidateQueries(['expenses']);
+      qc.invalidateQueries({ queryKey: ['expenses'] });
       onClose();
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
-      <Input label="Title *" error={errors.title?.message} {...register('title', { required: 'Required' })} />
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <Input
+        label="Title *"
+        error={errors.title?.message}
+        {...register('title', { required: 'Required' })}
+      />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select label="Category" {...register('category')}>
           <option value="">Select category</option>
-          {['Rent', 'Utilities', 'Payroll', 'Transport', 'Marketing', 'Supplies', 'Maintenance', 'Other'].map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+          {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </Select>
-        <Input label="Amount *" type="number" step="0.01" error={errors.amount?.message} {...register('amount', { required: 'Required' })} />
+        <Input
+          label="Amount *" type="number" step="0.01"
+          error={errors.amount?.message}
+          {...register('amount', { required: 'Required', valueAsNumber: true })}
+        />
       </div>
-      <Input label="Date *" type="date" error={errors.date?.message} {...register('date', { required: 'Required' })} />
+      <Input
+        label="Date *" type="date"
+        error={errors.date?.message}
+        {...register('date', { required: 'Required' })}
+      />
       <Input label="Description" {...register('description')} />
       <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
         <Button variant="secondary" type="button" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
@@ -54,20 +67,20 @@ export default function ExpensesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['expenses', page],
-    queryFn: () => expensesAPI.getAll({ page, limit: 20 }).then(r => r.data),
-    keepPreviousData: true,
+    queryFn: () => expensesAPI.getAll({ page, limit: 20 }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => expensesAPI.delete(id),
     onSuccess: () => {
       toast.success('Expense deleted');
-      qc.invalidateQueries(['expenses']);
+      qc.invalidateQueries({ queryKey: ['expenses'] });
       setDeleteTarget(null);
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
 
-  const total = data?.data?.reduce((s, e) => s + parseFloat(e.amount), 0) || 0;
+  const total = data?.data?.reduce((s, e) => s + parseFloat(e.amount || 0), 0) || 0;
 
   return (
     <div>
@@ -85,16 +98,19 @@ export default function ExpensesPage() {
       </div>
 
       <div className="card">
-        {isLoading ? <LoadingPage /> : data?.data?.length === 0 ? (
+        {isLoading ? (
+          <LoadingPage />
+        ) : data?.data?.length === 0 ? (
           <EmptyState icon="💸" title="No expenses recorded" />
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden sm:block table-container rounded-none border-0">
               <table className="table">
-                <thead><tr><th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+                <thead>
+                  <tr><th>Title</th><th>Category</th><th>Amount</th><th>Date</th><th>Actions</th></tr>
+                </thead>
                 <tbody>
-                  {data.data.map(e => (
+                  {data.data.map((e) => (
                     <tr key={e.id}>
                       <td className="font-medium text-gray-900">{e.title}</td>
                       <td><span className="badge-blue">{e.category || '—'}</span></td>
@@ -112,9 +128,8 @@ export default function ExpensesPage() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="sm:hidden divide-y divide-gray-100">
-              {data.data.map(e => (
+              {data.data.map((e) => (
                 <div key={e.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div>
@@ -137,12 +152,18 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'create' ? 'Record Expense' : 'Edit Expense'} size="md">
+      <Modal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        title={modal === 'create' ? 'Record Expense' : 'Edit Expense'}
+        size="md"
+      >
         <ExpenseForm expense={modal !== 'create' ? modal : null} onClose={() => setModal(null)} />
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate(deleteTarget?.id)}
         loading={deleteMutation.isPending}
         title="Delete Expense"

@@ -12,27 +12,34 @@ export default function InvoicesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['invoices', page, status],
-    queryFn: () => invoicesAPI.getAll({ page, limit: 20, status }).then(r => r.data),
-    keepPreviousData: true,
+    queryFn: () => invoicesAPI.getAll({ page, limit: 20, status }).then((r) => r.data),
   });
 
   const markPaidMutation = useMutation({
     mutationFn: (id) => invoicesAPI.markPaid(id),
-    onSuccess: () => { toast.success('Invoice marked as paid'); qc.invalidateQueries(['invoices']); },
+    onSuccess: () => {
+      toast.success('Invoice marked as paid');
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
 
   const handleDownload = async (invoice) => {
     try {
       const res = await invoicesAPI.download(invoice.id);
       downloadBlob(res.data, `invoice-${invoice.invoice_number}.pdf`);
-    } catch { toast.error('Download failed'); }
+    } catch {
+      toast.error('Download failed');
+    }
   };
 
   const handleEmail = async (id) => {
     try {
       await invoicesAPI.email(id);
       toast.success('Invoice emailed');
-    } catch { toast.error('Email failed'); }
+    } catch {
+      toast.error('Email failed');
+    }
   };
 
   return (
@@ -40,14 +47,15 @@ export default function InvoicesPage() {
       <PageHeader title="Invoices" subtitle={`${data?.meta?.total || 0} total invoices`} />
 
       <div className="card">
-        {/* Status filter — scrollable on mobile */}
         <div className="p-3 sm:p-4 border-b overflow-x-auto">
           <div className="flex gap-2 min-w-max">
-            {['', 'draft', 'sent', 'paid', 'overdue', 'cancelled'].map(s => (
+            {['', 'draft', 'sent', 'paid', 'overdue', 'cancelled'].map((s) => (
               <button
                 key={s}
                 onClick={() => { setStatus(s); setPage(1); }}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${status === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  status === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               >
                 {s || 'All'}
               </button>
@@ -55,19 +63,22 @@ export default function InvoicesPage() {
           </div>
         </div>
 
-        {isLoading ? <LoadingPage /> : data?.data?.length === 0 ? (
+        {isLoading ? (
+          <LoadingPage />
+        ) : data?.data?.length === 0 ? (
           <EmptyState icon="🧾" title="No invoices found" />
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block table-container rounded-none border-0">
               <table className="table">
-                <thead><tr>
-                  <th>Invoice #</th><th>Customer</th><th>Total</th><th>Paid</th>
-                  <th>Balance</th><th>Status</th><th>Date</th><th>Actions</th>
-                </tr></thead>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th><th>Customer</th><th>Total</th><th>Paid</th>
+                    <th>Balance</th><th>Status</th><th>Date</th><th>Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.data.map(inv => (
+                  {data.data.map((inv) => (
                     <tr key={inv.id}>
                       <td className="font-medium text-primary-600">{inv.invoice_number}</td>
                       <td className="text-gray-700">{inv.customer?.name}</td>
@@ -83,7 +94,11 @@ export default function InvoicesPage() {
                           <button onClick={() => handleDownload(inv)} className="text-xs text-primary-600 hover:underline">PDF</button>
                           <button onClick={() => handleEmail(inv.id)} className="text-xs text-blue-600 hover:underline">Email</button>
                           {inv.status !== 'paid' && (
-                            <button onClick={() => markPaidMutation.mutate(inv.id)} className="text-xs text-green-600 hover:underline">
+                            <button
+                              onClick={() => markPaidMutation.mutate(inv.id)}
+                              disabled={markPaidMutation.isPending}
+                              className="text-xs text-green-600 hover:underline disabled:opacity-50"
+                            >
                               Mark Paid
                             </button>
                           )}
@@ -95,9 +110,8 @@ export default function InvoicesPage() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden divide-y divide-gray-100">
-              {data.data.map(inv => (
+              {data.data.map((inv) => (
                 <div key={inv.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div>
@@ -127,7 +141,11 @@ export default function InvoicesPage() {
                     <button onClick={() => handleDownload(inv)} className="text-xs text-primary-600 hover:underline">⬇ PDF</button>
                     <button onClick={() => handleEmail(inv.id)} className="text-xs text-blue-600 hover:underline">✉ Email</button>
                     {inv.status !== 'paid' && (
-                      <button onClick={() => markPaidMutation.mutate(inv.id)} className="text-xs text-green-600 hover:underline">
+                      <button
+                        onClick={() => markPaidMutation.mutate(inv.id)}
+                        disabled={markPaidMutation.isPending}
+                        className="text-xs text-green-600 hover:underline disabled:opacity-50"
+                      >
                         ✓ Mark Paid
                       </button>
                     )}

@@ -18,12 +18,13 @@ function ProductForm({ product, categories, onClose }) {
     mutationFn: (data) => product ? productsAPI.update(product.id, data) : productsAPI.create(data),
     onSuccess: () => {
       toast.success(product ? 'Product updated' : 'Product created');
-      qc.invalidateQueries(['products']);
+      qc.invalidateQueries({ queryKey: ['products'] });
       onClose();
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="Product Name *" error={errors.name?.message} {...register('name', { required: 'Required' })} />
         <Input label="SKU *" error={errors.sku?.message} {...register('sku', { required: 'Required' })} />
@@ -31,23 +32,33 @@ function ProductForm({ product, categories, onClose }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select label="Category" {...register('category_id')}>
           <option value="">Select category</option>
-          {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </Select>
         <Input label="Supplier" {...register('supplier')} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Input label="Cost Price *" type="number" step="0.01" error={errors.cost_price?.message} {...register('cost_price', { required: 'Required' })} />
-        <Input label="Selling Price *" type="number" step="0.01" error={errors.selling_price?.message} {...register('selling_price', { required: 'Required' })} />
-        <Input label="Quantity" type="number" {...register('quantity')} />
+        <Input
+          label="Cost Price *" type="number" step="0.01"
+          error={errors.cost_price?.message}
+          {...register('cost_price', { required: 'Required', valueAsNumber: true })}
+        />
+        <Input
+          label="Selling Price *" type="number" step="0.01"
+          error={errors.selling_price?.message}
+          {...register('selling_price', { required: 'Required', valueAsNumber: true })}
+        />
+        <Input label="Quantity" type="number" {...register('quantity', { valueAsNumber: true })} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input label="Min Stock Level" type="number" {...register('min_stock_level')} />
+        <Input label="Min Stock Level" type="number" {...register('min_stock_level', { valueAsNumber: true })} />
         <Input label="Unit" placeholder="piece, kg, litre..." {...register('unit')} />
       </div>
       <Input label="Barcode" {...register('barcode')} />
       <div className="flex gap-3 justify-end pt-2">
         <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-        <Button type="submit" loading={mutation.isPending}>{product ? 'Update' : 'Create'} Product</Button>
+        <Button type="submit" loading={mutation.isPending}>
+          {product ? 'Update' : 'Create'} Product
+        </Button>
       </div>
     </form>
   );
@@ -55,21 +66,33 @@ function ProductForm({ product, categories, onClose }) {
 
 function StockAdjustModal({ product, onClose }) {
   const qc = useQueryClient();
-  const { register, handleSubmit } = useForm({ defaultValues: { type: 'restock', quantity_change: 1 } });
+  const { register, handleSubmit } = useForm({
+    defaultValues: { type: 'restock', quantity_change: 1 },
+  });
   const mutation = useMutation({
     mutationFn: (data) => productsAPI.adjustStock(product.id, data),
-    onSuccess: () => { toast.success('Stock adjusted'); qc.invalidateQueries(['products']); onClose(); },
+    onSuccess: () => {
+      toast.success('Stock adjusted');
+      qc.invalidateQueries({ queryKey: ['products'] });
+      onClose();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Adjustment failed'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
-      <p className="text-sm text-gray-600">Current stock: <strong>{product.quantity} {product.unit}</strong></p>
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <p className="text-sm text-gray-600">
+        Current stock: <strong>{product.quantity} {product.unit}</strong>
+      </p>
       <Select label="Adjustment Type" {...register('type')}>
         <option value="restock">Restock (+)</option>
         <option value="adjustment">Adjustment</option>
         <option value="damage">Damage (-)</option>
         <option value="return">Return (+)</option>
       </Select>
-      <Input label="Quantity Change" type="number" {...register('quantity_change', { required: true, valueAsNumber: true })} />
+      <Input
+        label="Quantity Change" type="number"
+        {...register('quantity_change', { required: true, valueAsNumber: true })}
+      />
       <Input label="Notes" {...register('notes')} />
       <div className="flex gap-3 justify-end">
         <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
@@ -89,22 +112,22 @@ export default function ProductsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', page, search],
-    queryFn: () => productsAPI.getAll({ page, limit: 20, search }).then(r => r.data),
-    keepPreviousData: true,
+    queryFn: () => productsAPI.getAll({ page, limit: 20, search }).then((r) => r.data),
   });
 
   const { data: catData } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => productsAPI.getCategories().then(r => r.data.data),
+    queryFn: () => productsAPI.getCategories().then((r) => r.data.data),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => productsAPI.delete(id),
     onSuccess: () => {
       toast.success('Product deactivated');
-      qc.invalidateQueries(['products']);
+      qc.invalidateQueries({ queryKey: ['products'] });
       setDeleteTarget(null);
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
 
   return (
@@ -121,23 +144,26 @@ export default function ProductsPage() {
             className="input max-w-xs"
             placeholder="Search products..."
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
 
-        {isLoading ? <LoadingPage /> : data?.data?.length === 0 ? (
+        {isLoading ? (
+          <LoadingPage />
+        ) : data?.data?.length === 0 ? (
           <EmptyState icon="📦" title="No products found" />
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block table-container rounded-none border-0">
               <table className="table">
-                <thead><tr>
-                  <th>Code</th><th>Name</th><th>SKU</th><th>Category</th>
-                  <th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th>
-                </tr></thead>
+                <thead>
+                  <tr>
+                    <th>Code</th><th>Name</th><th>SKU</th><th>Category</th>
+                    <th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.data.map(p => (
+                  {data.data.map((p) => (
                     <tr key={p.id}>
                       <td className="font-mono text-xs text-gray-500">{p.product_code}</td>
                       <td className="font-medium text-gray-900">{p.name}</td>
@@ -165,9 +191,8 @@ export default function ProductsPage() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden divide-y divide-gray-100">
-              {data.data.map(p => (
+              {data.data.map((p) => (
                 <div key={p.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="min-w-0">
@@ -198,7 +223,12 @@ export default function ProductsPage() {
         )}
       </div>
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'create' ? 'Add Product' : 'Edit Product'} size="lg">
+      <Modal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        title={modal === 'create' ? 'Add Product' : 'Edit Product'}
+        size="lg"
+      >
         <ProductForm product={modal !== 'create' ? modal : null} categories={catData} onClose={() => setModal(null)} />
       </Modal>
 
@@ -207,7 +237,8 @@ export default function ProductsPage() {
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate(deleteTarget?.id)}
         loading={deleteMutation.isPending}
         title="Deactivate Product"

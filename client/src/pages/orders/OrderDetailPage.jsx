@@ -12,12 +12,17 @@ export default function OrderDetailPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => ordersAPI.getOne(id).then(r => r.data.data),
+    queryFn: () => ordersAPI.getOne(id).then((r) => r.data.data),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => ordersAPI.cancel(id),
-    onSuccess: () => { toast.success('Order cancelled'); qc.invalidateQueries(['order', id]); },
+    onSuccess: () => {
+      toast.success('Order cancelled');
+      qc.invalidateQueries({ queryKey: ['order', id] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to cancel order'),
   });
 
   const downloadInvoice = async () => {
@@ -25,7 +30,9 @@ export default function OrderDetailPage() {
     try {
       const res = await invoicesAPI.download(data.invoice.id);
       downloadBlob(res.data, `invoice-${data.invoice.invoice_number}.pdf`);
-    } catch { toast.error('Download failed'); }
+    } catch {
+      toast.error('Download failed');
+    }
   };
 
   const emailInvoice = async () => {
@@ -33,7 +40,9 @@ export default function OrderDetailPage() {
     try {
       await invoicesAPI.email(data.invoice.id);
       toast.success('Invoice emailed to customer');
-    } catch { toast.error('Email failed'); }
+    } catch {
+      toast.error('Email failed');
+    }
   };
 
   if (isLoading) return <LoadingPage />;
@@ -41,15 +50,18 @@ export default function OrderDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <button
             onClick={() => navigate(-1)}
             className="text-sm text-gray-500 hover:text-gray-700 mb-1 flex items-center gap-1"
-          >← Back</button>
+          >
+            ← Back
+          </button>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{data.order_number}</h1>
-          <p className="text-xs sm:text-sm text-gray-500">{formatDateTime(data.created_at)} · by {data.creator?.name}</p>
+          <p className="text-xs sm:text-sm text-gray-500">
+            {formatDateTime(data.created_at)} · by {data.creator?.name}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge status={data.status} />
@@ -61,15 +73,17 @@ export default function OrderDetailPage() {
           )}
           {!['cancelled', 'delivered'].includes(data.status) && (
             <Button
-              variant="danger" size="sm"
+              variant="danger"
+              size="sm"
               onClick={() => cancelMutation.mutate()}
               loading={cancelMutation.isPending}
-            >Cancel Order</Button>
+            >
+              Cancel Order
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Customer + Invoice cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-700 mb-3 text-sm sm:text-base">Customer</h3>
@@ -77,7 +91,10 @@ export default function OrderDetailPage() {
           <p className="text-sm text-gray-500">{data.customer?.email}</p>
           <p className="text-sm text-gray-500">{data.customer?.phone}</p>
           <p className="text-sm text-gray-500">{data.customer?.address}</p>
-          <Link to={`/customers/${data.customer?.id}`} className="text-xs text-primary-600 hover:underline mt-2 block">
+          <Link
+            to={`/customers`}
+            className="text-xs text-primary-600 hover:underline mt-2 block"
+          >
             View customer profile →
           </Link>
         </div>
@@ -108,20 +125,23 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             </>
-          ) : <p className="text-sm text-gray-400">No invoice generated</p>}
+          ) : (
+            <p className="text-sm text-gray-400">No invoice generated</p>
+          )}
         </div>
       </div>
 
-      {/* Order Items */}
       <div className="card">
         <div className="p-4 sm:p-5 border-b">
           <h3 className="font-semibold text-gray-800 text-sm sm:text-base">Order Items</h3>
         </div>
         <div className="table-container rounded-none border-0">
           <table className="table">
-            <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+            <thead>
+              <tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+            </thead>
             <tbody>
-              {data.items?.map(item => (
+              {data.items?.map((item) => (
                 <tr key={item.id}>
                   <td className="font-medium text-gray-900">{item.product_name}</td>
                   <td className="text-center">{item.quantity}</td>
@@ -133,7 +153,6 @@ export default function OrderDetailPage() {
           </table>
         </div>
 
-        {/* Totals */}
         <div className="p-4 sm:p-5 border-t">
           <div className="max-w-xs ml-auto space-y-2 text-sm">
             <div className="flex justify-between">

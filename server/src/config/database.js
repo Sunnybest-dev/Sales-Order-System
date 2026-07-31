@@ -7,15 +7,14 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
+    port: parseInt(process.env.DB_PORT) || 3306,
     dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
-    define: { timestamps: true, underscored: true, charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' },
-    dialectOptions: {
-      ...(process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {}),
-      charset: 'utf8mb4',
-    },
+    logging: false,
+    pool: { max: 10, min: 0, acquire: 60000, idle: 10000 },
+    define: { timestamps: true, underscored: true },
+    dialectOptions: process.env.DB_SSL === 'true'
+      ? { ssl: { rejectUnauthorized: false } }
+      : {},
   }
 );
 

@@ -11,17 +11,20 @@ import { formatDate, formatCurrency } from '../../utils/helpers';
 
 function CustomerForm({ customer, onClose }) {
   const qc = useQueryClient();
-  const { register, handleSubmit, formState: { errors } } = useForm({ defaultValues: customer || {} });
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: customer || {},
+  });
   const mutation = useMutation({
     mutationFn: (data) => customer ? customersAPI.update(customer.id, data) : customersAPI.create(data),
     onSuccess: () => {
       toast.success(customer ? 'Customer updated' : 'Customer created');
-      qc.invalidateQueries(['customers']);
+      qc.invalidateQueries({ queryKey: ['customers'] });
       onClose();
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="Full Name *" error={errors.name?.message} {...register('name', { required: 'Required' })} />
         <Input label="Phone" {...register('phone')} />
@@ -34,7 +37,9 @@ function CustomerForm({ customer, onClose }) {
       </div>
       <div className="flex gap-3 justify-end pt-2">
         <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-        <Button type="submit" loading={mutation.isPending}>{customer ? 'Update' : 'Create'} Customer</Button>
+        <Button type="submit" loading={mutation.isPending}>
+          {customer ? 'Update' : 'Create'} Customer
+        </Button>
       </div>
     </form>
   );
@@ -49,17 +54,17 @@ export default function CustomersPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['customers', page, search],
-    queryFn: () => customersAPI.getAll({ page, limit: 20, search }).then(r => r.data),
-    keepPreviousData: true,
+    queryFn: () => customersAPI.getAll({ page, limit: 20, search }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => customersAPI.delete(id),
     onSuccess: () => {
       toast.success('Customer deactivated');
-      qc.invalidateQueries(['customers']);
+      qc.invalidateQueries({ queryKey: ['customers'] });
       setDeleteTarget(null);
     },
+    onError: (err) => toast.error(err.response?.data?.message || 'Operation failed'),
   });
 
   return (
@@ -76,23 +81,26 @@ export default function CustomersPage() {
             className="input max-w-xs"
             placeholder="Search customers..."
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
 
-        {isLoading ? <LoadingPage /> : data?.data?.length === 0 ? (
+        {isLoading ? (
+          <LoadingPage />
+        ) : data?.data?.length === 0 ? (
           <EmptyState icon="👥" title="No customers found" description="Add your first customer to get started" />
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block table-container rounded-none border-0">
               <table className="table">
-                <thead><tr>
-                  <th>Code</th><th>Name</th><th>Phone</th><th>Email</th>
-                  <th>Balance</th><th>Joined</th><th>Status</th><th>Actions</th>
-                </tr></thead>
+                <thead>
+                  <tr>
+                    <th>Code</th><th>Name</th><th>Phone</th><th>Email</th>
+                    <th>Balance</th><th>Joined</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.data.map(c => (
+                  {data.data.map((c) => (
                     <tr key={c.id}>
                       <td className="font-mono text-xs text-gray-500">{c.customer_code}</td>
                       <td className="font-medium text-gray-900">{c.name}</td>
@@ -115,9 +123,8 @@ export default function CustomersPage() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden divide-y divide-gray-100">
-              {data.data.map(c => (
+              {data.data.map((c) => (
                 <div key={c.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="min-w-0">
@@ -146,12 +153,18 @@ export default function CustomersPage() {
         )}
       </div>
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'create' ? 'Add Customer' : 'Edit Customer'} size="lg">
+      <Modal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        title={modal === 'create' ? 'Add Customer' : 'Edit Customer'}
+        size="lg"
+      >
         <CustomerForm customer={modal !== 'create' ? modal : null} onClose={() => setModal(null)} />
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate(deleteTarget?.id)}
         loading={deleteMutation.isPending}
         title="Deactivate Customer"

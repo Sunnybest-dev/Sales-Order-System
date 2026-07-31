@@ -7,11 +7,10 @@ const useAuthStore = create((set) => ({
   isLoading: false,
 
   login: async (credentials) => {
-    set({ isLoading: true });
     const { data } = await authAPI.login(credentials);
     localStorage.setItem('accessToken', data.data.accessToken);
     localStorage.setItem('refreshToken', data.data.refreshToken);
-    set({ user: data.data.user, isAuthenticated: true, isLoading: false });
+    set({ user: data.data.user, isAuthenticated: true });
     return data.data.user;
   },
 
@@ -22,12 +21,13 @@ const useAuthStore = create((set) => ({
   },
 
   fetchProfile: async () => {
+    set({ isLoading: true });
     try {
       const { data } = await authAPI.getProfile();
-      set({ user: data.data });
+      set({ user: data.data, isAuthenticated: true, isLoading: false });
     } catch {
       localStorage.clear();
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
