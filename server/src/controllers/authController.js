@@ -5,8 +5,16 @@ const { sendEmail } = require('../services/emailService');
 const logger = require('../config/logger');
 
 const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
-  const refreshToken = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN });
+  const accessToken = jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET || 'fallback_secret_change_me',
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+  const refreshToken = jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret_change_me',
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+  );
   return { accessToken, refreshToken };
 };
 
