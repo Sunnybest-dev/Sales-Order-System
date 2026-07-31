@@ -16,95 +16,72 @@ const logger = require('./config/logger');
 
 const app = express();
 
-const parseAllowedOrigins = () => {
-  const configured = [
-    process.env.CLIENT_URL,
-    process.env.CLIENT_URLS,
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://sales-order-eight.vercel.app',
-  ];
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.CLIENT_URLS,
+  'http://localhost:3000',
+  'http://localhost:5173',
+].flatMap((v) => {
+  if (!v) return [];
+  return v.split(',').map((s) => s.trim()).filter(Boolean);
+});
 
-  return configured.flatMap((value) => {
-    if (!value) return [];
-    return value.split(',').map((item) => item.trim()).filter(Boolean);
-  });
-};
-
-const allowedOrigins = parseAllowedOrigins();
-const corsOptions = {
-  origin: (origin, callback) => {
+app.use(helmet());
+app.use(xss());
+app.use(cors({
+  origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin) || /https:\/\/.*\.vercel\.app$/i.test(origin)) {
-      callback(null, true);
-      return;
+      cb(null, true);
+    } else {
+      cb(null, false);
     }
-
-    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-// Security
-app.use(helmet());
-app.use(xss());
-app.use(cors(corsOptions));
+}));
 app.use(rateLimit({
-  windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
-  max: process.env.RATE_LIMIT_MAX || 100,
+  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   message: { success: false, message: 'Too many requests, please try again later.' },
 }));
-
-// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(compression());
-
-// Logging
 app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } }));
-
-// Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
 app.use(['/api', '/api/v1'], routes);
-
-// Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
-
-// Error handling
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.authenticate()
-  .then(async () => {
+async function start() {
+  try {
+    await sequelize.authenticate();
     logger.info('Database connected');
-    if (process.env.DROP_AND_SYNC === 'true') {
-      logger.info('DROP_AND_SYNC enabled — dropping and recreating all tables...');
-      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-      await sequelize.drop();
-      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-    }
+
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-    await sequelize.sync();
+    await sequelize.sync({ force: process.env.DROP_AND_SYNC === 'true' });
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-    logger.info('Tables synced.');
+    logger.info('Tables synced');
+
     if (process.env.SEED_DB === 'true') {
       const { seedUsers } = require('./database/seeders/index');
       await seedUsers();
-      logger.info('Database seeded.');
+      logger.info('Database seeded');
     }
-  })
-  .then(() => {
+
     app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
-  })
-  .catch((err) => {
+  } catch (err) {
     logger.error('Startup error:', err);
     process.exit(1);
-  });
+  }
+}
+
+start();
 
 module.exports = app;
