@@ -17,14 +17,20 @@ const app = express();
 
 app.use(helmet());
 app.use(xss());
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-    const allowed = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (allowed.includes(origin) || /\.vercel\.app$/.test(origin) || origin === 'http://localhost:3000' || origin === 'http://localhost:5173') {
+    const envOrigins = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+    const allAllowed = [...ALLOWED_ORIGINS, ...envOrigins];
+    if (allAllowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
       return cb(null, true);
     }
-    cb(null, false);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
