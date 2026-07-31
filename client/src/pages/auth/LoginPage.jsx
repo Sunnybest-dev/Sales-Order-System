@@ -6,10 +6,10 @@ import useAuthStore from '../../store/authStore';
 import { Input } from '../../components/ui/index';
 
 const DEMOS = [
-  { label: 'Super Admin', email: 'admin@salesorder.com', password: 'Admin@1234' },
-  { label: 'Manager', email: 'manager@salesorder.com', password: 'Manager@1234' },
-  { label: 'Accountant', email: 'accountant@salesorder.com', password: 'Account@1234' },
-  { label: 'Sales Staff', email: 'sales@salesorder.com', password: 'Sales@1234' },
+  { label: 'Super Admin', email: 'admin@salesorder.com', password: 'admin123' },
+  { label: 'Manager', email: 'manager@salesorder.com', password: 'admin123' },
+  { label: 'Accountant', email: 'accountant@salesorder.com', password: 'admin123' },
+  { label: 'Sales Staff', email: 'sales@salesorder.com', password: 'admin123' },
 ];
 
 export default function LoginPage() {

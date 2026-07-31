@@ -4,8 +4,7 @@ const { sequelize, User, Customer, Category, Product, Order, OrderItem, Invoice,
 async function seedUsers() {
   const existing = await User.findOne({ where: { email: 'admin@salesorder.com' } });
   if (existing) {
-    await existing.update({ password: 'admin123' });
-    console.log('Admin password reset to admin123');
+    console.log('Users already seeded — skipping');
     return;
   }
   await User.bulkCreate([
