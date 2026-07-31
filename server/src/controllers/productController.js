@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Product, Category, InventoryLog, Notification, User } = require('../models/associations');
+const { Product, Category, InventoryLog, Notification, User, sequelize } = require('../models/associations');
 const { generateProductCode } = require('../utils/generators');
 
 exports.getAllProducts = async (req, res, next) => {
@@ -12,7 +12,7 @@ exports.getAllProducts = async (req, res, next) => {
       { product_code: { [Op.like]: `%${search}%` } },
     ];
     if (category_id) where.category_id = category_id;
-    if (low_stock === 'true') where[Op.and] = [{ quantity: { [Op.lte]: sequelize.col('min_stock_level') } }];
+    if (low_stock === 'true') where[Op.and] = [sequelize.where(sequelize.col('quantity'), { [Op.lte]: sequelize.col('min_stock_level') })];
 
     const { count, rows } = await Product.findAndCountAll({
       where,
@@ -99,7 +99,6 @@ exports.adjustStock = async (req, res, next) => {
 
 exports.getLowStockProducts = async (req, res, next) => {
   try {
-    const { sequelize } = require('../models/associations');
     const products = await Product.findAll({
       where: { is_active: true, quantity: { [Op.lte]: sequelize.col('min_stock_level') } },
       include: [{ model: Category, as: 'category', attributes: ['name'] }],

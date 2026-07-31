@@ -42,8 +42,8 @@ router.get('/customers/:id/analytics', authenticate, customerCtrl.getAnalytics);
 
 // Products
 router.get('/products', authenticate, productCtrl.getAllProducts);
-router.post('/products', authenticate, authorize('super_admin', 'manager'), productCtrl.createProduct);
 router.get('/products/low-stock', authenticate, productCtrl.getLowStockProducts);
+router.post('/products', authenticate, authorize('super_admin', 'manager'), productCtrl.createProduct);
 router.get('/products/:id', authenticate, productCtrl.getProduct);
 router.put('/products/:id', authenticate, authorize('super_admin', 'manager'), productCtrl.updateProduct);
 router.delete('/products/:id', authenticate, authorize('super_admin', 'manager'), productCtrl.deleteProduct);
