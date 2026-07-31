@@ -66,9 +66,9 @@ export default function LoginPage() {
           <div className="mt-6 p-4 bg-gray-50 rounded-xl">
             <p className="text-xs font-semibold text-gray-500 mb-2">DEMO CREDENTIALS</p>
             <div className="space-y-1 text-xs text-gray-600">
-              <p>🔑 admin@salesorder.com / Admin@1234</p>
-              <p>🔑 manager@salesorder.com / Manager@1234</p>
-              <p>🔑 sales@salesorder.com / Sales@1234</p>
+              <p>🔑 admin@salesorder.com / admin123</p>
+              <p>🔑 manager@salesorder.com / admin123</p>
+              <p>🔑 sales@salesorder.com / admin123</p>
             </div>
           </div>
         </div>

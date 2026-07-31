@@ -21,40 +21,42 @@ export function Spinner({ size = 'md' }) {
   );
 }
 
+import { forwardRef } from 'react';
+
 // Input
-export function Input({ label, error, className = '', ...props }) {
+export const Input = forwardRef(function Input({ label, error, className = '', ...props }, ref) {
   return (
     <div className="w-full">
       {label && <label className="label">{label}</label>}
-      <input className={`input ${error ? 'border-red-400 focus:ring-red-400' : ''} ${className}`} {...props} />
+      <input ref={ref} className={`input ${error ? 'border-red-400 focus:ring-red-400' : ''} ${className}`} {...props} />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
-}
+});
 
 // Select
-export function Select({ label, error, children, className = '', ...props }) {
+export const Select = forwardRef(function Select({ label, error, children, className = '', ...props }, ref) {
   return (
     <div className="w-full">
       {label && <label className="label">{label}</label>}
-      <select className={`input ${error ? 'border-red-400' : ''} ${className}`} {...props}>
+      <select ref={ref} className={`input ${error ? 'border-red-400' : ''} ${className}`} {...props}>
         {children}
       </select>
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
-}
+});
 
 // Textarea
-export function Textarea({ label, error, className = '', ...props }) {
+export const Textarea = forwardRef(function Textarea({ label, error, className = '', ...props }, ref) {
   return (
     <div className="w-full">
       {label && <label className="label">{label}</label>}
-      <textarea className={`input resize-none ${error ? 'border-red-400' : ''} ${className}`} {...props} />
+      <textarea ref={ref} className={`input resize-none ${error ? 'border-red-400' : ''} ${className}`} {...props} />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
-}
+});
 
 // Modal — full-screen on mobile, centered card on sm+
 export function Modal({ open, onClose, title, children, size = 'md' }) {
