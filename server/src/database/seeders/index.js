@@ -2,18 +2,28 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const { sequelize, User, Customer, Category, Product, Order, OrderItem, Invoice, Transaction, Expense } = require('../../models/associations');
 const { generateOrderNumber, generateInvoiceNumber, generateTransactionRef } = require('../../utils/generators');
 
+async function seedUsers() {
+  const existing = await User.findOne({ where: { email: 'admin@salesorder.com' } });
+  if (existing) {
+    await existing.update({ password: 'admin123' });
+    console.log('Admin password updated.');
+    return;
+  }
+  await User.bulkCreate([
+    { name: 'Super Admin', email: 'admin@salesorder.com', password: 'admin123', role: 'super_admin', phone: '08012345678' },
+    { name: 'John Manager', email: 'manager@salesorder.com', password: 'admin123', role: 'manager', phone: '08023456789' },
+    { name: 'Mary Accountant', email: 'accountant@salesorder.com', password: 'admin123', role: 'accountant', phone: '08034567890' },
+    { name: 'Sales Staff', email: 'sales@salesorder.com', password: 'admin123', role: 'sales_staff', phone: '08045678901' },
+  ], { individualHooks: true });
+  console.log('Users seeded.');
+}
+
+module.exports = { seedUsers };
+
 async function seed() {
   await sequelize.sync({ force: true });
   console.log('Tables created');
 
-  // Users
-  const users = await User.bulkCreate([
-    { name: 'Super Admin', email: 'admin@salesorder.com', password: 'Admin@1234', role: 'super_admin', phone: '08012345678' },
-    { name: 'John Manager', email: 'manager@salesorder.com', password: 'Manager@1234', role: 'manager', phone: '08023456789' },
-    { name: 'Mary Accountant', email: 'accountant@salesorder.com', password: 'Account@1234', role: 'accountant', phone: '08034567890' },
-    { name: 'Sales Staff', email: 'sales@salesorder.com', password: 'Sales@1234', role: 'sales_staff', phone: '08045678901' },
-  ], { individualHooks: true });
-  console.log('Users seeded');
 
   // Categories
   const categories = await Category.bulkCreate([
