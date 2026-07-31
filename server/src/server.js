@@ -84,17 +84,20 @@ sequelize.authenticate()
   .then(async () => {
     logger.info('Database connected');
     if (process.env.DROP_AND_SYNC === 'true') {
-      logger.info('DROP_AND_SYNC enabled — will force recreate all tables...');
+      logger.info('DROP_AND_SYNC enabled — dropping and recreating all tables...');
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+      await sequelize.drop();
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
     }
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-    await sequelize.sync({ force: process.env.DROP_AND_SYNC === 'true' });
+    await sequelize.sync();
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    logger.info('Tables synced.');
     if (process.env.SEED_DB === 'true') {
       const { seedUsers } = require('./database/seeders/index');
       await seedUsers();
       logger.info('Database seeded.');
     }
-    return;
   })
   .then(() => {
     app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
